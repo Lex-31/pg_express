@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="frontend.js" defer></script>
+    <title>Data Table</title>
+</head>
+
+<body>
+
+    <div class="a4-container">
+        <button id="new-btn">New</button>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>№ п/п</th>
+                    <th>Наименование изделия</th>
+                    <th>Марка</th>
+                    <th>Обозначение</th>
+                    <th>Код ОКПД2</th>
+                    <th>Код ОКВЭД2</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Фон для модального окна -->
+    <div class="modal-backdrop"></div>
+
+    <!-- Форма для создания новой записи -->
+    <div id="new-form-container">
+        <form id="new-form">
+            <label>
+                <p>ID: <span id="new-id"></span></p>
+            </label>
+            <label>
+                Категория:
+                <select id="new-category_id" required></select>
+            </label>
+            <label>
+                Порядковый номер изделия:
+                <input type="text" id="new-item_number" required>
+            </label>
+            <label>
+                Наименование изделия:
+                <input type="text" id="new-prod_name" required>
+            </label>
+            <label>
+                Марка:
+                <input type="text" id="new-prod_mark" required>
+            </label>
+            <label>
+                Обозначение:
+                <input type="text" id="new-prod_number" required>
+            </label>
+            <label>
+                Код ОКПД2:
+                <input type="text" id="new-prod_okpd2" required>
+            </label>
+            <label>
+                Код ОКВЭД2:
+                <input type="text" id="new-prod_okved2" required>
+            </label>
+            <button type="button" id="form-submit-btn">Create</button>
+            <button type="button" onclick="closeForm()">Cancel</button>
+        </form>
+    </div>
+
+</body>
+
+</html>
