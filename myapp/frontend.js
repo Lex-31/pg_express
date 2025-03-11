@@ -7,22 +7,16 @@ async function loadData() { //GET запрос загружает данные �
     const response = await fetch('http://172.22.1.100/api/test');
     const data = await response.json();
 
-
-
     const tableBody = document.getElementById('table-body');
     tableBody.innerHTML = ''; // Очистка таблицы перед загрузкой данных
 
     categories.forEach(category => {  //проходимся по всем категориям
-
-        console.log('category ', category);
-
-
         const categoryCode = category.category_id.join('.');
         const categoryRow = document.createElement('tr');
         categoryRow.innerHTML = `
             <td colspan="6" class="category_item">${categoryCode} ${category.category_name}</td>
         `;
-        tableBody.appendChild(categoryRow);
+        tableBody.append(categoryRow);
 
         // Фильтрация изделий по текущей категории
         const categoryItems = data.filter(item => JSON.stringify(item.category_code) === JSON.stringify(category.category_id));  //сравниваем изделия и категории по колонке массива чисел
@@ -39,7 +33,7 @@ async function loadData() { //GET запрос загружает данные �
                 <td>${item.prod_okved2}</td>
             `;
             tr.addEventListener('dblclick', () => openEditForm(item.id));
-            tableBody.appendChild(tr);
+            tableBody.append(tr);
         });
     });
 }
@@ -50,7 +44,7 @@ function openEditForm(id) { //GET запрос загружает данные �
         .then(data => {
 
             document.getElementById('new-id').textContent = data.id;
-            document.getElementById('new-item_number').value = data.item_number.slice(-1)[0];  //***
+            document.getElementById('new-item_number').value = data.item_number.slice(-1)[0];
             document.getElementById('new-prod_name').value = data.prod_name;
             document.getElementById('new-prod_mark').value = data.prod_mark;
             document.getElementById('new-prod_number').value = data.prod_number;
@@ -72,8 +66,9 @@ function openEditForm(id) { //GET запрос загружает данные �
                 });
             });
 
-            document.getElementById('form-submit-btn').textContent = 'Update';
+            document.getElementById('form-submit-btn').textContent = 'Обновить';
             document.getElementById('form-submit-btn').onclick = () => updateRow(id);
+            document.getElementById('form-delete-btn').onclick = () => deleteRow(id);
 
             document.getElementById('new-form-container').style.display = 'block';
             document.querySelector('.modal-backdrop').style.display = 'block';
@@ -100,6 +95,18 @@ function updateRow(id) { //Отправляет PUT запрос на серве
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(data)
+    })
+        .then(response => response.json())
+        .then(() => {
+            closeForm();
+            loadData();
+        });
+}
+
+//удаление позиции по id
+function deleteRow(id) {
+    fetch(`http://172.22.1.100/api/test/${id}`, {
+        method: 'DELETE',
     })
         .then(response => response.json())
         .then(() => {
@@ -140,8 +147,9 @@ function closeForm() { //Скрывает форму и сбрасывает е�
     document.getElementById('new-form-container').style.display = 'none';
     document.querySelector('.modal-backdrop').style.display = 'none';
     document.getElementById('new-form').reset();
-    document.getElementById('form-submit-btn').textContent = 'Create';
+    document.getElementById('form-submit-btn').textContent = 'Создать';
     document.getElementById('form-submit-btn').onclick = createRow;
+    document.getElementById('form-delete-btn').onclick = null;
 }
 
 async function fetchCategories() { //запрос списка категорий
@@ -163,8 +171,9 @@ document.getElementById('new-btn').addEventListener('click', () => { //откр�
 
         document.getElementById('new-form-container').style.display = 'block';
         document.querySelector('.modal-backdrop').style.display = 'block';
-        document.getElementById('form-submit-btn').textContent = 'Create';
+        document.getElementById('form-submit-btn').textContent = 'Создать';
         document.getElementById('form-submit-btn').onclick = createRow;
+        document.getElementById('form-delete-btn').onclick = null;
         document.getElementById('new-id').textContent = ''; //очищает значение ID при создании новой записи
 
     });

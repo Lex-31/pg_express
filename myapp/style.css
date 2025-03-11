@@ -157,6 +157,11 @@ body {
     border-radius: 4px;
 }
 
+.buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
 #new-form button {
     padding: 10px 20px;
     margin-top: 10px;
@@ -169,6 +174,15 @@ body {
 
 #new-form button:hover {
     background-color: #0056b3;
+}
+
+#new-form #form-delete-btn {
+    background-color: red;
+    padding: 10px 10px;
+}
+
+#new-form #form-delete-btn:hover {
+    background-color: rgb(150, 0, 0);
 }
 
 /* Фон за модальным окном */

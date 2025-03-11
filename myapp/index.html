@@ -6,13 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <script src="frontend.js" defer></script>
-    <title>Data Table</title>
+    <title>Продукция компании Стальэнерго</title>
 </head>
 
 <body>
 
     <div class="a4-container">
-        <button id="new-btn">New</button>
+        <button id="new-btn">Добавить новое</button>
         <table class="table">
             <thead>
                 <tr>
@@ -66,8 +66,11 @@
                 Код ОКВЭД2:
                 <input type="text" id="new-prod_okved2" required>
             </label>
-            <button type="button" id="form-submit-btn">Create</button>
-            <button type="button" onclick="closeForm()">Cancel</button>
+            <div class="buttons">
+                <button type="button" id="form-submit-btn">Создать</button>
+                <button type="button" onclick="closeForm()">Отмена</button>
+                <button type="button" id="form-delete-btn">Удалить</button>
+            </div>
         </form>
     </div>
 

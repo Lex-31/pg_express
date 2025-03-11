@@ -144,6 +144,21 @@ app.post('//test', async (req, res) => {
     }
 });
 
+//маршрут удаление записи по id
+app.delete('//test/:id', async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+    try {
+        await client.query(`DELETE FROM ${table_name} WHERE id = $1`, [id]);
+        res.json({ msg: 'Row deleted successfully', id: id });
+    } catch (err) {
+        console.error('Error executing query', err.stack);
+        res.status(500).send('Internal Server Error');
+    } finally {
+        client.release();
+    }
+});
+
 const PORT = 3000;
 
 process.on('unhandledRejection', (reason, promise) => {
