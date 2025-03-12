@@ -13,6 +13,7 @@
 
     <div class="a4-container">
         <button id="new-btn">Добавить новое</button>
+        <button id="toggle-doc-btn">Документация</button>
         <table class="table">
             <thead>
                 <tr>
@@ -20,8 +21,9 @@
                     <th>Наименование изделия</th>
                     <th>Марка</th>
                     <th>Обозначение</th>
-                    <th>Код ОКПД2</th>
-                    <th>Код ОКВЭД2</th>
+                    <th class="okpd-okved-col" style="display: table-cell;">Код ОКПД2</th>
+                    <th class="okpd-okved-col" style="display: table-cell;">Код ОКВЭД2</th>
+                    <th class="doc-col" style="display: none;">Документация</th>
                 </tr>
             </thead>
             <tbody id="table-body">
@@ -65,6 +67,10 @@
             <label>
                 Код ОКВЭД2:
                 <input type="text" id="new-prod_okved2" required>
+            </label>
+            <label>
+                Документация:
+                <input type="text" id="new-prod_doc" required>
             </label>
             <div class="buttons">
                 <button type="button" id="form-submit-btn">Создать</button>

@@ -29,8 +29,9 @@ async function loadData() { //GET запрос загружает данные �
                 <td>${item.prod_name}</td>
                 <td>${item.prod_mark}</td>
                 <td>${item.prod_number}</td>
-                <td>${item.prod_okpd2}</td>
-                <td>${item.prod_okved2}</td>
+                <td class="okpd-okved-col">${item.prod_okpd2}</td>
+                <td class="okpd-okved-col">${item.prod_okved2}</td>
+                <td class="doc-col" style="display: none;">${item.prod_doc}</td>
             `;
             tr.addEventListener('dblclick', () => openEditForm(item.id));
             tableBody.append(tr);
@@ -50,6 +51,7 @@ function openEditForm(id) { //GET запрос загружает данные �
             document.getElementById('new-prod_number').value = data.prod_number;
             document.getElementById('new-prod_okpd2').value = data.prod_okpd2;
             document.getElementById('new-prod_okved2').value = data.prod_okved2;
+            // document.getElementById('new-prod_doc').value = data.prod_doc;
 
             // Заполнение выпадающего списка категорий
             fetchCategories().then(categories => {
@@ -87,6 +89,7 @@ function updateRow(id) { //Отправляет PUT запрос на серве
         prod_number: document.getElementById('new-prod_number').value,
         prod_okpd2: document.getElementById('new-prod_okpd2').value,
         prod_okved2: document.getElementById('new-prod_okved2').value,
+        prod_doc: document.getElementById('new-prod_doc').value,
     };
 
     fetch(`http://172.22.1.100/api/test/${id}`, {
@@ -127,6 +130,7 @@ function createRow() { //Отправляет POST запрос на серве�
         prod_number: document.getElementById('new-prod_number').value,
         prod_okpd2: document.getElementById('new-prod_okpd2').value,
         prod_okved2: document.getElementById('new-prod_okved2').value,
+        prod_doc: document.getElementById('new-prod_doc').value,
     };
 
     fetch('http://172.22.1.100/api/test', {
@@ -157,6 +161,17 @@ async function fetchCategories() { //запрос списка категори�
     return response.json();
 }
 
+function toggleDocumentation() { //рокировка колонок ОКПД2 ОКЭД2 и Документация, а так же изменения названия конпки
+    const okpdCols = document.querySelectorAll('.okpd-okved-col');
+    const docCols = document.querySelectorAll('.doc-col');
+    const toggleBtn = document.getElementById('toggle-doc-btn');
+
+    okpdCols.forEach(col => col.style.display = col.style.display === 'none' ? 'table-cell' : 'none');
+    docCols.forEach(col => col.style.display = col.style.display === 'none' ? 'table-cell' : 'none');
+
+    toggleBtn.textContent = toggleBtn.textContent === 'Документация' ? 'ОКПД2, ОКВЭД2' : 'Документация';
+}
+
 document.getElementById('new-btn').addEventListener('click', () => { //открывает форму при создании новой записи
 
     fetchCategories().then(categories => {  //cateroties = [ { category_id: [1,1], category_name: 'Аппаратура', id: 1 }, {...}, ... ]
@@ -178,6 +193,8 @@ document.getElementById('new-btn').addEventListener('click', () => { //откр�
 
     });
 });
+
+document.getElementById('toggle-doc-btn').addEventListener('click', toggleDocumentation);
 
 // Загрузка данных при загрузке страницы
 loadData();
