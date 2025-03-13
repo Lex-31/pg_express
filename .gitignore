@@ -4,3 +4,4 @@ myapp/www.code-workspace
 myapp/node_modules/
 myapp/categories.sql
 myapp/products.sql
+myapp/doc.sql

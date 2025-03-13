@@ -19,7 +19,7 @@ app.get('//test', async (req, res) => {
         const result = await client.query(`
             SELECT
                 p.id,
-                c.category_id AS category_code,  -- переименовываем ${table_name}_category.category_id в category_code
+                c.category_id AS category_code,  -- переименовываем table_name_category.category_id в category_code
                 c.category_name,
                 p.item_number,
                 p.prod_name,
@@ -36,7 +36,19 @@ app.get('//test', async (req, res) => {
                 c.category_id,  -- сортировка по категориям
                 p.item_number  -- сортировка изделий внутри каждой категории по номеру изделия
         `);
-        res.json(result.rows);
+
+        const items = result.rows;
+
+        for (const item of items) {
+            const docsResult = await client.query(`
+                SELECT doc_name, doc_link
+                FROM ${table_name}_doc
+                WHERE prod_id = $1
+            `, [item.id]);
+            item.docs = docsResult.rows;
+        }
+
+        res.json(items);
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
@@ -52,8 +64,8 @@ app.get('//test/:id', async (req, res) => {
     try {
         const result = await client.query(`
             SELECT
-                p.*,  -- выбрать все поля таблицы ${table_name}
-                c.category_id AS category_code,  -- переименовываем ${table_name}_category.category_id в category_code
+                p.*,  -- выбрать все поля таблицы table_name
+                c.category_id AS category_code,  -- переименовываем table_name_category.category_id в category_code
                 c.category_name
             FROM
                 ${table_name} p
@@ -61,12 +73,26 @@ app.get('//test/:id', async (req, res) => {
                 ${table_name}_category c
                 ON p.category_id = c.category_id  -- соединяет таблицы по полю category_id
             WHERE
-                p.id = $1  -- выбирает запись только с определенным ${table_name}.id
-            `, [id]);
+                p.id = $1  -- выбирает запись только с определенным table_name.id
+        `, [id]);
         if (result.rowCount === 0) {
             return res.status(404).send('Record not found');
         }
-        res.json(result.rows[0]);
+
+        const docsResult = await client.query(`
+            SELECT
+                doc_name,
+                doc_link
+            FROM
+                ${table_name}_doc
+            WHERE
+                prod_id = $1
+        `, [id]);
+
+        const data = result.rows[0];
+        data.docs = docsResult.rows;
+
+        res.json(data);
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
@@ -89,11 +115,25 @@ app.get('//categories', async (req, res) => {
     }
 });
 
+//маршрут запроса типов документов
+/*app.get('//doc-types', async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const result = await client.query(`SELECT * FROM ${table_name}_doc`);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error executing query', err.stack);
+        res.status(500).send('Internal Server Error');
+    } finally {
+        client.release();
+    }
+});*/
+
 //маршрут изменение записи :id в таблице
 app.put('//test/:id', async (req, res) => {
 
     const { id } = req.params;
-    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2 } = req.body;
+    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2, docs } = req.body;
 
     const client = await pool.connect();
     try {
@@ -111,6 +151,17 @@ app.put('//test/:id', async (req, res) => {
             WHERE  -- обновление применяется только к 1 записи параметров изделия
                 id = $8
         `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2, id]);
+
+        await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);  //удаляет всю документацию одного изделия. ***нужно сделать чтобы избирательно удалял
+
+        const insertDocsQuery = `
+            INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
+            VALUES ${docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
+        `;
+
+        const docValues = [id, ...docs.flat()];
+        await client.query(insertDocsQuery, docValues); //вставка данных в ${table_name}_doc
+
         res.json({ msg: 'Row updated successfully', id: id });
     } catch (err) {
         console.error('Error executing query', err.stack);
@@ -123,7 +174,7 @@ app.put('//test/:id', async (req, res) => {
 //маршрут добавления новой записи
 app.post('//test', async (req, res) => {
 
-    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2 } = req.body;
+    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2, docs } = req.body;
 
     const client = await pool.connect();
     try {
@@ -132,10 +183,21 @@ app.post('//test', async (req, res) => {
                 ${table_name} (category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2)
             VALUES
                 ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING  -- возвращает id новой записи из ${table_name}
+            RETURNING  -- возвращает id новой записи из table_name
                 id
         `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2]);
-        res.status(201).json({ msg: 'Row inserted successfully', id: result.rows[0].id }); //успешное добавление, возвращается статус 201 Created и id новой записи
+
+        const prodId = result.rows[0].id;
+
+        const insertDocsQuery = `
+            INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
+            VALUES ${docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
+        `;
+
+        const docValues = [prodId, ...docs.flat()];
+        await client.query(insertDocsQuery, docValues);
+
+        res.status(201).json({ msg: 'Row inserted successfully', id: prodId }); //успешное добавление, возвращается статус 201 Created и id новой записи
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
