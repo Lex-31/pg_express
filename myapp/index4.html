@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+</body>
+
+</html>
+<script>
+    (function () {
+        const path = prompt('Введите путь к файлу:', '//fs3/Производственный%20архив%20центрального%20офиса/ЕИУС.468622.001_ППСЦ/ЭД/ЕИУС.468622.001%20РЭ%20%20ППСЦ%20изм.1.pdf');
+        setTimeout(() => {
+            if (path) location.href = 'file://' + encodeURI(path);
+
+        }, 2000);
+    })();
+</script>

@@ -52,20 +52,67 @@ async function loadData() { //GET запрос загружает данные �
         document.querySelectorAll('.doc-col').forEach(col => col.style.display = 'none');
     }
 
+
+
+    // Добавляем обработчик событий для ссылок документации
+    document.querySelectorAll('.link-to-doc').forEach(link => {
+        if (link.getAttribute('data-link').startsWith('\\')) {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                const url = link.getAttribute('data-link');
+
+
+                // Альтернативный метод копирования текста
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                console.log('URL copied to clipboard using alternative method:', url);
+                const newWindow = window.open('', '_blank');
+                console.log(newWindow);
+
+                newWindow.onload = function () {
+                    newWindow.document.write(`
+                        <body>Hello</body>
+                        <script>
+                        setTimeout(() => {
+                            console.log(Hello);
+                        
+                    }, 5000);
+                            document.addEventListener('DOMContentLoaded', function() {
+                                alert('URL copied to clipboard: ${url}');
+                            });
+                        </script>
+                    `);
+                    newWindow.document.close();
+
+                };
+
+            });
+        }
+    });
+
 }
 
 function formatDocs(docs) { //создает ссылку и раскрашивает документы, есть ссылка - зеленый, нет ссылки - красный
-    return docs.map(doc => {
-        // const encodedLink = doc.doc_link ? doc.doc_link.replace(/ /g, ' ') : '';  //замена пробелов в ссылке на %20
-        let encodedLink = doc.doc_link ? doc.doc_link.replace(/ /g, '%20') : '';
-        if (encodedLink.startsWith('\\')) {
-            encodedLink = `file://${encodedLink.replace(/\\/g, '/')}`;
-        }
+    const stringLinks = docs.map(doc => {
+        // const encodedLink = doc.doc_link ? doc.doc_link.replace(/ /g, '%20') : '';  //замена пробелов в ссылке на %20
+        const encodedLink = doc.doc_link // ссылка формата как она хранится  в БД \\fs3\Производственный архив центрального офиса\ЕИУС.468622.001_ППСЦ\ЭД\ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf
 
-        const link = encodedLink ? `<a href="${encodedLink}" style="color: green;">${doc.doc_name}</a>` : `<span style="color: red;">${doc.doc_name}</span>`; //ссылка существует - зеленый цвет выбираем, отсутвует - красный
+        const link = encodedLink ? `<a href="${encodedLink}" data-link="${encodedLink}" class="link-to-doc" style="color: green;">${doc.doc_name}</a>` : `<span style="color: red;">${doc.doc_name}</span>`; //ссылка существует - зеленый цвет выбираем, отсутвует - красный
+
         return link; //возвращает в новый массив(map) готовых HTML ссылок
+
     }).join(' '); //массив готовых HTML ссылок преобразовывает в строку где ссылки разделены пробелом
+
+    // console.log(document.querySelector('.link-to-doc'));
+
+    return stringLinks;
 }
+
 
 function openEditForm(id) { //GET запрос загружает данные конкретной записи по id 
     fetch(`http://172.22.1.100/api/test/${id}`) //сервер принимает как app.get('//test/:id'
@@ -128,7 +175,7 @@ function addDocField(docName = '', docLink = '') {
 
     const removeBtn = docDiv.querySelector('.remove-doc-btn');
     removeBtn.addEventListener('click', () => { //на кнопку "Удалить" документ - вешаем событие удаление строчки документа
-        docContainer.remove(docDiv); //removeChild было
+        docContainer.removeChild(docDiv); //removeChild верно работает, remove некорректно работает
     });
 }
 

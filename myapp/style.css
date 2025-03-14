@@ -4,9 +4,11 @@
         margin: 1cm 1cm 1cm 2cm;
     }
 
-    #new-btn {
+    #new-btn,
+    #toggle-doc-btn {
         display: none;
     }
+
 }
 
 body,

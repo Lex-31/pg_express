@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <input type="file" id="file-input">
+
+</body>
+
+</html>
+<script>
+    function openNewTabAndExecuteJS(url) {
+
+        // Открываем новую вкладку
+        const newWindow = window.open('', '_blank');
+
+
+        setTimeout(() => {
+
+            // Выполняем JavaScript-код в новой вкладке
+            newWindow.document.write('console.log("Hello")');
+
+            newWindow.document.close();
+        }, 5000);
+
+
+    }
+
+    // Пример использования функции
+    const url = 'http://example.com/document.pdf';
+    openNewTabAndExecuteJS(url);
+
+</script>

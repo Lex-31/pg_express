@@ -154,13 +154,33 @@ app.put('//test/:id', async (req, res) => {
 
         await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);  //удаляет всю документацию одного изделия. ***нужно сделать чтобы избирательно удалял
 
+        /*
+        console.log('ID записаного в базу изделия id: ', id); // [10]
+        console.log('docs до маппинга: ', docs); // []
+
         const insertDocsQuery = `
             INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
             VALUES ${docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
         `;
 
+        console.log('docs после маппинга: ', docs); // []
+        console.log('SQL запрос записи в таблицу документов изделия insertDocsQuery: ', insertDocsQuery); // INSERT INTO stalenergo_doc (prod_id, doc_name, doc_link) VALUES
+
         const docValues = [id, ...docs.flat()];
+
+        console.log('что из себя представляет docValues: ', docValues); // [ '10' ]
+
         await client.query(insertDocsQuery, docValues); //вставка данных в ${table_name}_doc
+        */
+
+        if (docs && docs.length > 0) {
+            const insertDocsQuery = `
+                INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
+                VALUES ${docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
+            `;
+            const docValues = [id, ...docs.flat()];
+            await client.query(insertDocsQuery, docValues);
+        }
 
         res.json({ msg: 'Row updated successfully', id: id });
     } catch (err) {
@@ -188,14 +208,35 @@ app.post('//test', async (req, res) => {
         `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2]);
 
         const prodId = result.rows[0].id;
+        /*
+        console.log('ID записаного в базу изделия prodId : ', prodId); //448
+        console.log('docs до маппинга: ', docs); //[]
+
 
         const insertDocsQuery = `
-            INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
-            VALUES ${docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
+        INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
+        VALUES ${docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
         `;
 
+        console.log('docs после маппинга: ', docs); //[]
+        console.log('SQL запрос записи в таблицу документов изделия insertDocsQuery: ', insertDocsQuery); //INSERT INTO stalenergo_doc (prod_id, doc_name, doc_link) VALUES
+
+
         const docValues = [prodId, ...docs.flat()];
+
+        console.log('что из себя представляет docValues: ', docValues); // [ 448 ]
+
         await client.query(insertDocsQuery, docValues);
+        */
+
+        if (docs && docs.length > 0) {
+            const insertDocsQuery = `
+                INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
+                VALUES ${docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
+            `;
+            const docValues = [prodId, ...docs.flat()];
+            await client.query(insertDocsQuery, docValues);
+        }
 
         res.status(201).json({ msg: 'Row inserted successfully', id: prodId }); //успешное добавление, возвращается статус 201 Created и id новой записи
     } catch (err) {
@@ -211,8 +252,14 @@ app.delete('//test/:id', async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
     try {
+
+        // Удаляем все документы, связанные с изделием
+        await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);
+
+        // Удаляем само изделие
         await client.query(`DELETE FROM ${table_name} WHERE id = $1`, [id]);
-        res.json({ msg: 'Row deleted successfully', id: id });
+
+        res.json({ msg: 'Row and associated documents deleted successfully', id: id });
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
