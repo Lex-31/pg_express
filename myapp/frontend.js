@@ -34,7 +34,13 @@ async function loadData() { //GET запрос загружает данные �
                 <td class="okpd-okved-col">${item.prod_okved2}</td>
                 <td class="doc-col" style="display: none;">${item.docs ? formatDocs(item.docs) : ''}</td >
         `;
-            tr.addEventListener('dblclick', () => openEditForm(item.id));
+            tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши
+            tr.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши
+                if (!event.target.closest('a')) { // на ссылках оставляем дефолное выпадающее меню
+                    event.preventDefault();
+                    showContextMenu(event, item);
+                }
+            });
             tableBody.append(tr);
         });
     });
@@ -52,49 +58,49 @@ async function loadData() { //GET запрос загружает данные �
         document.querySelectorAll('.doc-col').forEach(col => col.style.display = 'none');
     }
 
-
-
-    // Добавляем обработчик событий для ссылок документации
-    document.querySelectorAll('.link-to-doc').forEach(link => {
-        if (link.getAttribute('data-link').startsWith('\\')) {
+    document.querySelectorAll('.link-to-doc').forEach(link => { // обработчик событий для ссылок документации
+        if (link.getAttribute('data-link').startsWith('\\')) { //если это ссылка на локальный ресурс file://
             link.addEventListener('click', (event) => {
-                event.preventDefault();
-                const url = link.getAttribute('data-link');
+                event.preventDefault(); //не будем пытаться открыть этот ресурс в новой вкладке
+                const url = link.getAttribute('data-link'); // ссылка на документ с локальной машины вида \\fs3\...
 
-
-                // Альтернативный метод копирования текста
-                const textArea = document.createElement('textarea');
+                const textArea = document.createElement('textarea'); //временный элемент
                 textArea.value = url;
+                textArea.style.position = 'fixed'; //чтобы не было эффекта прокрутки страницы до конца документа
                 document.body.appendChild(textArea);
                 textArea.focus();
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
+                textArea.select(); //делаем элемент с ссылкой выделенным
+                document.execCommand('copy'); //копируем выделенный адрес ссылки в буфер
+                document.body.removeChild(textArea); //удаляем временный элемент
                 console.log('URL copied to clipboard using alternative method:', url);
-                const newWindow = window.open('', '_blank');
+                const newWindow = window.open('', '_blank'); //открываем новую вкладку
                 console.log(newWindow);
 
+                // Открываем новую вкладку и отправляем сообщение
+                /*const newWindow = window.open('about:blank', '_blank');
+                newWindow.onload = function() {
+                    newWindow.postMessage({ type: 'COPY_URL', url: url }, '*');
+                };*/
+
+                /* //неработает
                 newWindow.onload = function () {
                     newWindow.document.write(`
                         <body>Hello</body>
                         <script>
                         setTimeout(() => {
                             console.log(Hello);
-                        
-                    }, 5000);
+                                            }, 5000);
                             document.addEventListener('DOMContentLoaded', function() {
                                 alert('URL copied to clipboard: ${url}');
                             });
                         </script>
                     `);
                     newWindow.document.close();
-
-                };
+                };*/
 
             });
         }
     });
-
 }
 
 function formatDocs(docs) { //создает ссылку и раскрашивает документы, есть ссылка - зеленый, нет ссылки - красный
@@ -102,7 +108,7 @@ function formatDocs(docs) { //создает ссылку и раскрашив�
         // const encodedLink = doc.doc_link ? doc.doc_link.replace(/ /g, '%20') : '';  //замена пробелов в ссылке на %20
         const encodedLink = doc.doc_link // ссылка формата как она хранится  в БД \\fs3\Производственный архив центрального офиса\ЕИУС.468622.001_ППСЦ\ЭД\ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf
 
-        const link = encodedLink ? `<a href="${encodedLink}" data-link="${encodedLink}" class="link-to-doc" style="color: green;">${doc.doc_name}</a>` : `<span style="color: red;">${doc.doc_name}</span>`; //ссылка существует - зеленый цвет выбираем, отсутвует - красный
+        const link = encodedLink ? `<a href="${encodedLink}" data-link="${encodedLink}" class="link-to-doc" style="color: green;" target="_blank">${doc.doc_name}</a>` : `<span style="color: red;">${doc.doc_name}</span>`; //ссылка существует - зеленый цвет выбираем, отсутвует - красный
 
         return link; //возвращает в новый массив(map) готовых HTML ссылок
 
@@ -219,7 +225,7 @@ function updateRow(id) { //Отправляет PUT запрос на серве
         });
 }
 
-//удаление позиции по id. ***когда удаляют позицию нужно удалять из таблицы документов все привязанные к позиции документы
+//удаление позиции по id
 function deleteRow(id) {
     fetch(`http://172.22.1.100/api/test/${id}`, {
         method: 'DELETE',
@@ -331,3 +337,178 @@ document.getElementById('toggle-doc-btn').addEventListener('click', toggleDocume
 
 // Загрузка данных при загрузке страницы
 loadData();
+
+
+
+
+// Обработка сообщений в новой вкладке - НЕРАБОТАЕТ
+/*window.addEventListener('message', (event) => {
+    if (event.data.type === 'COPY_URL') {
+        const url = event.data.url;
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        alert('URL copied to clipboard: ' + url);
+    }
+});*/
+
+// Функция для отображения контекстного меню
+function showContextMenu(event, item) {
+    // удаление предыдущего контекстного меню
+    const context_menu = document.querySelector('.context-menu')
+    if (context_menu) {
+        context_menu.remove();
+    }
+    //создание текущего контекстного меню
+    const contextMenu = document.createElement('div');
+    contextMenu.classList.add('context-menu');
+    contextMenu.innerHTML = `
+        <ul>
+            <li class="context-menu-item" data-action="archive">Архивировать документацию</li>
+        </ul>
+    `;
+    document.body.appendChild(contextMenu);
+    contextMenu.style.left = `${event.clientX}px`;
+    contextMenu.style.top = `${event.clientY}px`;
+
+    // Обработка выбора пункта меню
+    contextMenu.querySelector('.context-menu-item').addEventListener('click', () => {
+        archiveDocs(item);
+        document.body.removeChild(contextMenu);
+    });
+
+    // Удаление контекстного меню при клике вне его
+    document.addEventListener('click', (event) => {
+        if (!contextMenu.contains(event.target)) {
+            document.body.removeChild(contextMenu);
+        }
+    }, { once: true });
+}
+
+// Функция для архивирования документов
+async function archiveDocs(item) {
+    const docs = item.docs;
+    console.log('Начало архивации, документы: ', docs);
+
+    /*const zip = new JSZip(); //Создание нового экземпляра JSZip для работы с ZIP-архивом
+    // const folder = zip.folder(`${docs[0].doc_name}_${docs[0].doc_link.split('/').pop().split('.')[0]}.zip`);
+    const folder = zip.folder(`test.zip`); //Создание основной папки в архиве
+
+    docs.forEach(doc => {
+
+        console.log('doc', doc);
+
+        if (doc.doc_link) { //если на документ есть ссылка...
+            folder.file(doc.doc_name, doc.doc_link, { base64: true }); //добавление файла в архив. doc.doc_name - имя файла, doc.doc_link - содержимое файла (предполагается, что в base64)
+        }
+    });
+
+    const blob = await zip.generateAsync({ type: 'blob' }); //Асинхронное преобразование архива в бинарный Blob-объект
+    const url = URL.createObjectURL(blob); //Создание временной URL-ссылки для созданного Blob
+    const a = document.createElement('a'); //Создание скрытого временного элемента <a> для скачивания
+    a.href = url; //Установка ссылки на архив
+    // a.download = `${docs[0].doc_name}_${docs[0].doc_link.split('/').pop().split('.')[0]}.zip`;
+    a.download = `test.zip`; //Задание имени скачиваемого файла
+    document.body.appendChild(a); //Добавление ссылки в DOM
+    a.click(); //Программный клик для запуска скачивания
+    document.body.removeChild(a); //Удаление временной ссылки из DOM
+    URL.revokeObjectURL(url); //Освобождение памяти, занятой временной URL*/
+
+    const zip = new JSZip(); // Создаем экземпляр ZIP-архива
+
+    // Функция для получения расширения из URL
+    const getFileExtension = (url) => {
+        try {
+            // Удаляем параметры запроса (всё после ?)
+            const cleanUrl = url.split('?')[0];
+            // Получаем имя файла из URL
+            const filename = cleanUrl.split('/').pop();
+            // Извлекаем расширение
+            const ext = filename.includes('.') ? filename.split('.').pop().toLowerCase() : null;
+
+            console.log('Расширение файла по ссылке: ', ext);
+
+
+            return ext || ''; // Возвращаем пустую строку если нет расширения
+        } catch {
+            return '';
+        }
+    };
+
+    // 1. Загружаем все файлы асинхронно
+    const filesPromises = docs.map(async (doc) => {
+        if (!doc.doc_link) return null;
+
+        try {
+            // 2. Загружаем файл по URL
+            const response = await fetch(doc.doc_link);
+
+            // 3. Проверяем статус ответа
+            if (!response.ok) {
+                console.error(`Ошибка загрузки ${doc.doc_link}: ${response.status}`);
+                return null;
+            }
+
+            // Получаем расширение из URL
+            const fileExtension = getFileExtension(doc.doc_link);
+            console.log('резульатат работы функции получения расширения: ', fileExtension);
+
+            // Формируем имя файла
+            let finalFilename = doc.doc_name;
+
+            // Если есть расширение в URL
+            if (fileExtension) {
+                // Удаляем существующее расширение в имени (если есть)
+                const baseName = finalFilename.replace(/\.[^/.]+$/, '_'); //меняем на _
+                finalFilename = `${baseName}.${fileExtension}`; //формируем имя файла с расширением
+            }
+
+
+            // 4. Получаем бинарные данные как Blob
+            const blob = await response.blob();
+
+            // 5. Добавляем в архив (БЕЗ вложенных папок)
+            zip.file(finalFilename, blob, { binary: true });
+
+            console.log(`Добавлен файл: ${finalFilename} (${blob.size} байт)`);
+        } catch (error) {
+            console.error(`Ошибка обработки файла ${finalFilename}:`, error);
+        }
+    });
+
+    // 6. Ждем завершения всех загрузок
+    await Promise.all(filesPromises);
+
+    // 7. Проверяем есть ли файлы в архиве
+    if (Object.keys(zip.files).length === 0) {
+        console.error('Нет файлов для архивации');
+        return;
+    }
+
+    // 8. Генерируем архив
+    const blob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE', // Сжатие для уменьшения размера
+        compressionOptions: { level: 9 } // Максимальное сжатие
+    });
+
+    // 9. Создаем ссылку для скачивания
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `${item.prod_number}_${item.prod_mark}_${item.prod_name}.zip`; // Уникальное имя
+
+    document.body.appendChild(a);
+    a.click();
+
+    // 10. Уборка
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log('Архив успешно создан');
+
+}

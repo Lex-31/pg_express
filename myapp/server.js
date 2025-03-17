@@ -12,6 +12,23 @@ app.use((req, res, next) => {
     next();
 });
 
+
+
+//маршрут прокси для скачки документов
+/*app.get('//proxy', async (req, res) => {
+    try {
+        const url = req.query.url;
+        const response = await fetch(url);
+        res.set('Content-Type', response.headers.get('Content-Type'));
+        response.body.pipe(res);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});*/
+
+
+
+
 //маршрут по пути /app из index.html (fetch 172.22.1.100/api/test)
 app.get('//test', async (req, res) => {
     const client = await pool.connect();
