@@ -1,36 +1,20 @@
 import express from "express";
 import cors from "cors";
 import { pool, ensureTableExists, table_name } from "./db.js";
+import fs from "fs";
+import https from "https";
 
 const app = express();
 app.use(cors());
 app.use(express.json()); // middleware для обработки JSON автоматически парсит входящие запросы с заголовком Content-Type: application/json и добавляет данные в req.body
-
-// Отладочный middleware для логирования запрашиваемых путей
-app.use((req, res, next) => {
+app.use((req, res, next) => { // Отладочный middleware для логирования запрашиваемых путей
     console.log(`Request URL: ${req.originalUrl}`);
     next();
 });
+app.use('/data/folder1', express.static('/data/folder1')); // Укажите директорию, где находятся ваши PDF-файлы
 
-
-
-//маршрут прокси для скачки документов
-/*app.get('//proxy', async (req, res) => {
-    try {
-        const url = req.query.url;
-        const response = await fetch(url);
-        res.set('Content-Type', response.headers.get('Content-Type'));
-        response.body.pipe(res);
-    } catch (error) {
-        res.status(500).send(error.message);
-    }
-});*/
-
-
-
-
-//маршрут по пути /app из index.html (fetch 172.22.1.100/api/test)
-app.get('//test', async (req, res) => {
+//маршрут по пути / из index.html (fetch 172.22.1.106/api/main)
+app.get('/api/main', async (req, res) => {
     const client = await pool.connect();
     try {
         const result = await client.query(`
@@ -53,9 +37,7 @@ app.get('//test', async (req, res) => {
                 c.category_id,  -- сортировка по категориям
                 p.item_number  -- сортировка изделий внутри каждой категории по номеру изделия
         `);
-
         const items = result.rows;
-
         for (const item of items) {
             const docsResult = await client.query(`
                 SELECT doc_name, doc_link
@@ -64,18 +46,15 @@ app.get('//test', async (req, res) => {
             `, [item.id]);
             item.docs = docsResult.rows;
         }
-
         res.json(items);
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
-    } finally {
-        client.release();
-    }
+    } finally { client.release(); }
 });
 
 //маршрут GET запроса для 1 строки таблицы БД по id
-app.get('//test/:id', async (req, res) => {
+app.get('/api/main/:id', async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
     try {
@@ -92,10 +71,7 @@ app.get('//test/:id', async (req, res) => {
             WHERE
                 p.id = $1  -- выбирает запись только с определенным table_name.id
         `, [id]);
-        if (result.rowCount === 0) {
-            return res.status(404).send('Record not found');
-        }
-
+        if (result.rowCount === 0) { return res.status(404).send('Record not found'); }
         const docsResult = await client.query(`
             SELECT
                 doc_name,
@@ -105,21 +81,17 @@ app.get('//test/:id', async (req, res) => {
             WHERE
                 prod_id = $1
         `, [id]);
-
         const data = result.rows[0];
         data.docs = docsResult.rows;
-
         res.json(data);
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
-    } finally {
-        client.release();
-    }
+    } finally { client.release(); }
 });
 
 //маршрут запроса списка категорий
-app.get('//categories', async (req, res) => {
+app.get('/api/categories', async (req, res) => {
     const client = await pool.connect();
     try {
         const result = await client.query(`SELECT * FROM ${table_name}_category`);
@@ -127,31 +99,50 @@ app.get('//categories', async (req, res) => {
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
-    } finally {
-        client.release();
+    } finally { client.release(); }
+});
+
+//маршрут получения доступа к статическому файлу PDF...
+app.post('/api/get-pdf', (req, res) => {
+    const originalPath = req.body.path;
+    try {
+        const newPath = originalPath.replace(/\\\\fs3\\Производственный архив центрального офиса\\/, '/data/folder1/').replace(/\\/g, '/'); // Замена пути
+        if (fs.existsSync(newPath)) { // Проверка существования файла - вариант статического файла
+            const fileUrl = `http://${req.headers.host}${newPath}`; //создание пути к статическому файлу
+            res.json({ url: fileUrl }); // Возвращаем в ответе URL для доступа к статическому файлу
+        } else { res.status(404).send('File not found'); }
+    } catch (error) {
+        console.error('Error processing the request:', error);
+        res.status(500).send('Internal Server Error');
     }
 });
 
-//маршрут запроса типов документов
-/*app.get('//doc-types', async (req, res) => {
-    const client = await pool.connect();
+//маршрут для загрузки файлов по внешним ссылкам
+app.post('/api/download-external', (req, res) => {
+    const { url } = req.body;
     try {
-        const result = await client.query(`SELECT * FROM ${table_name}_doc`);
-        res.json(result.rows);
-    } catch (err) {
-        console.error('Error executing query', err.stack);
+        const request = https.get(url, (response) => {
+            if (response.statusCode === 200) {
+                const fileName = url.split('/').pop();
+                res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+                response.pipe(res);
+            } else { res.status(response.statusCode).send('Failed to download file'); }
+        });
+
+        request.on('error', (error) => {
+            console.error('Error downloading external file:', error);
+            res.status(500).send('Internal Server Error');
+        });
+    } catch (error) {
+        console.error('Error processing the request:', error);
         res.status(500).send('Internal Server Error');
-    } finally {
-        client.release();
     }
-});*/
+});
 
 //маршрут изменение записи :id в таблице
-app.put('//test/:id', async (req, res) => {
-
+app.put('/api/test/:id', async (req, res) => {
     const { id } = req.params;
     const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2, docs } = req.body;
-
     const client = await pool.connect();
     try {
         await client.query(`
@@ -168,28 +159,7 @@ app.put('//test/:id', async (req, res) => {
             WHERE  -- обновление применяется только к 1 записи параметров изделия
                 id = $8
         `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2, id]);
-
         await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);  //удаляет всю документацию одного изделия. ***нужно сделать чтобы избирательно удалял
-
-        /*
-        console.log('ID записаного в базу изделия id: ', id); // [10]
-        console.log('docs до маппинга: ', docs); // []
-
-        const insertDocsQuery = `
-            INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
-            VALUES ${docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
-        `;
-
-        console.log('docs после маппинга: ', docs); // []
-        console.log('SQL запрос записи в таблицу документов изделия insertDocsQuery: ', insertDocsQuery); // INSERT INTO stalenergo_doc (prod_id, doc_name, doc_link) VALUES
-
-        const docValues = [id, ...docs.flat()];
-
-        console.log('что из себя представляет docValues: ', docValues); // [ '10' ]
-
-        await client.query(insertDocsQuery, docValues); //вставка данных в ${table_name}_doc
-        */
-
         if (docs && docs.length > 0) {
             const insertDocsQuery = `
                 INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
@@ -198,21 +168,16 @@ app.put('//test/:id', async (req, res) => {
             const docValues = [id, ...docs.flat()];
             await client.query(insertDocsQuery, docValues);
         }
-
         res.json({ msg: 'Row updated successfully', id: id });
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
-    } finally {
-        client.release();
-    }
+    } finally { client.release(); }
 });
 
 //маршрут добавления новой записи
-app.post('//test', async (req, res) => {
-
+app.post('/api/test', async (req, res) => {
     const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2, docs } = req.body;
-
     const client = await pool.connect();
     try {
         const result = await client.query(`
@@ -225,26 +190,6 @@ app.post('//test', async (req, res) => {
         `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2]);
 
         const prodId = result.rows[0].id;
-        /*
-        console.log('ID записаного в базу изделия prodId : ', prodId); //448
-        console.log('docs до маппинга: ', docs); //[]
-
-
-        const insertDocsQuery = `
-        INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
-        VALUES ${docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
-        `;
-
-        console.log('docs после маппинга: ', docs); //[]
-        console.log('SQL запрос записи в таблицу документов изделия insertDocsQuery: ', insertDocsQuery); //INSERT INTO stalenergo_doc (prod_id, doc_name, doc_link) VALUES
-
-
-        const docValues = [prodId, ...docs.flat()];
-
-        console.log('что из себя представляет docValues: ', docValues); // [ 448 ]
-
-        await client.query(insertDocsQuery, docValues);
-        */
 
         if (docs && docs.length > 0) {
             const insertDocsQuery = `
@@ -254,25 +199,20 @@ app.post('//test', async (req, res) => {
             const docValues = [prodId, ...docs.flat()];
             await client.query(insertDocsQuery, docValues);
         }
-
         res.status(201).json({ msg: 'Row inserted successfully', id: prodId }); //успешное добавление, возвращается статус 201 Created и id новой записи
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
-    } finally {
-        client.release();
-    }
+    } finally { client.release(); }
 });
 
 //маршрут удаление записи по id
-app.delete('//test/:id', async (req, res) => {
+app.delete('/api/test/:id', async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
     try {
-
         // Удаляем все документы, связанные с изделием
         await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);
-
         // Удаляем само изделие
         await client.query(`DELETE FROM ${table_name} WHERE id = $1`, [id]);
 
@@ -280,21 +220,13 @@ app.delete('//test/:id', async (req, res) => {
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
-    } finally {
-        client.release();
-    }
+    } finally { client.release(); }
 });
 
 const PORT = 3000;
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    // Опционально: завершить процесс с ошибкой
-    // process.exit(1);
-});
+process.on('unhandledRejection', (reason, promise) => { console.error('Unhandled Rejection at:', promise, 'reason:', reason); });
 
 ensureTableExists().then(() => { //создание таблицы и заполнение БД
-    app.listen(PORT, () => {
-        console.log(`Server is running on http://localhost:${PORT}`);
-    });
+    app.listen(PORT, () => { console.log(`Server is running on http://localhost:${PORT}`); });
 });
