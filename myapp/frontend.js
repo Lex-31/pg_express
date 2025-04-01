@@ -246,7 +246,7 @@ function toggleDocumentation() { //рокировка колонок ОКПД2 �
     const toggleBtn = document.getElementById('toggle-doc-btn');
 
     if (toggleBtn.textContent === 'Документация') {
-        toggleBtn.textContent = 'ОКПД2, ОКВЭД2';
+        toggleBtn.textContent = 'ОКПД, ОКВЭД';
         okpdCols.forEach(col => col.style.display = 'none');
         docCols.forEach(col => col.style.display = '');
         localStorage.setItem('docToggleState', 'docs');
