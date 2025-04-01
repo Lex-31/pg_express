@@ -20,8 +20,8 @@ export async function ensureTableExists() {
             prod_name VARCHAR(100),
             prod_mark VARCHAR(100),
             prod_number VARCHAR(100),
-            prod_okpd2 VARCHAR(100),
-            prod_okved2 VARCHAR(100)
+            prod_okpd VARCHAR(100),
+            prod_okved VARCHAR(100)
         );
         `);
         await client.query(`
@@ -42,7 +42,7 @@ export async function ensureTableExists() {
         const result = await client.query(`SELECT * FROM ${table_name}`);
         if (result.rowCount === 0) {
             await client.query(`
-            INSERT INTO ${table_name} (category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2) VALUES
+            INSERT INTO ${table_name} (category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved) VALUES
                 ('{1,1}', '{1,1,1}', 'Пункт промежуточный связи цифровой', 'ППСЦ', 'ЕИУС.468622.001', '26.30.23.170', '26.30.29'),
                 ('{1,1}', '{1,1,2}', 'Пункт промежуточный связи цифровой влагозащищенный', 'ППСЦ-В', 'ЕИУС.468351.002', '26.30.23.170', '26.30.29'),
                 ('{1,1}', '{1,1,3}', 'Усилитель диспетчера', 'УД-3МА ', 'ЕИУС.465311.007-01', '26.30.23.170', '26.30.29'),

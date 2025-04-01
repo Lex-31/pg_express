@@ -121,11 +121,13 @@ body {
     width: 20%;
 }
 
+/*ОКПД*/
 .table th:nth-child(5),
 .table td:nth-child(5) {
     width: 10%;
 }
 
+/*ОКВЭД*/
 .table th:nth-child(6),
 .table td:nth-child(6) {
     width: 8%;

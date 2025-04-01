@@ -26,8 +26,8 @@ app.get('/api/main', async (req, res) => {
                 p.prod_name,
                 p.prod_mark,
                 p.prod_number,
-                p.prod_okpd2,
-                p.prod_okved2
+                p.prod_okpd,
+                p.prod_okved
             FROM
                 ${table_name} p
             JOIN  -- Если нужны все продукты (включая те, у которых нет категории), используйте LEFT JOIN
@@ -140,9 +140,9 @@ app.post('/api/download-external', (req, res) => {
 });
 
 //маршрут изменение записи :id в таблице
-app.put('/api/test/:id', async (req, res) => {
+app.put('/api/main/:id', async (req, res) => {
     const { id } = req.params;
-    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2, docs } = req.body;
+    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, docs } = req.body;
     const client = await pool.connect();
     try {
         await client.query(`
@@ -154,11 +154,11 @@ app.put('/api/test/:id', async (req, res) => {
                 prod_name = $3,
                 prod_mark = $4,
                 prod_number = $5,
-                prod_okpd2 = $6,
-                prod_okved2 = $7
+                prod_okpd = $6,
+                prod_okved = $7
             WHERE  -- обновление применяется только к 1 записи параметров изделия
                 id = $8
-        `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2, id]);
+        `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, id]);
         await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);  //удаляет всю документацию одного изделия. ***нужно сделать чтобы избирательно удалял
         if (docs && docs.length > 0) {
             const insertDocsQuery = `
@@ -176,18 +176,18 @@ app.put('/api/test/:id', async (req, res) => {
 });
 
 //маршрут добавления новой записи
-app.post('/api/test', async (req, res) => {
-    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2, docs } = req.body;
+app.post('/api/main', async (req, res) => {
+    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, docs } = req.body;
     const client = await pool.connect();
     try {
         const result = await client.query(`
             INSERT INTO
-                ${table_name} (category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2)
+                ${table_name} (category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved)
             VALUES
                 ($1, $2, $3, $4, $5, $6, $7)
             RETURNING  -- возвращает id новой записи из table_name
                 id
-        `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd2, prod_okved2]);
+        `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved]);
 
         const prodId = result.rows[0].id;
 
@@ -207,7 +207,7 @@ app.post('/api/test', async (req, res) => {
 });
 
 //маршрут удаление записи по id
-app.delete('/api/test/:id', async (req, res) => {
+app.delete('/api/main/:id', async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
     try {

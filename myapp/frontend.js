@@ -3,7 +3,7 @@ async function loadData() { //GET запрос загружает данные �
     const categories = await fetchCategories(); // [ {id: 1, category_id: [1, 1], category_name: 'Аппаратура для связи'}, {...}, ... ]
     // Загрузка изделий
     const response = await fetch('http://172.22.1.106/api/main');
-    const data = await response.json(); // [ {id: 1, category_code: [1, 1], category_name: 'Аппаратура для связи', item_number: [1, 1, 1], prod_name: 'Пункт связи', prod_mark: "ППСЦ", prod_number: "ЕИУС,468622,001", prod_okpd2: "26,30,23,170", prod_okved2: "26,30,29", }, {...}, ... ]
+    const data = await response.json(); // [ {id: 1, category_code: [1, 1], category_name: 'Аппаратура для связи', item_number: [1, 1, 1], prod_name: 'Пункт связи', prod_mark: "ППСЦ", prod_number: "ЕИУС,468622,001", prod_okpd: "26,30,23,170", prod_okved: "26,30,29", }, {...}, ... ]
 
     const tableBody = document.getElementById('table-body');
     tableBody.innerHTML = ''; // Очистка таблицы перед загрузкой данных
@@ -28,8 +28,8 @@ async function loadData() { //GET запрос загружает данные �
                 <td>${item.prod_name}</td>
                 <td>${item.prod_mark}</td>
                 <td>${item.prod_number}</td>
-                <td class="okpd-okved-col">${item.prod_okpd2}</td>
-                <td class="okpd-okved-col">${item.prod_okved2}</td>
+                <td class="okpd-okved-col">${item.prod_okpd}</td>
+                <td class="okpd-okved-col">${item.prod_okved}</td>
                 <td class="doc-col" style="display: none;">${item.docs ? formatDocs(item.docs) : ''}</td >
         `;
             tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши
@@ -47,7 +47,7 @@ async function loadData() { //GET запрос загружает данные �
     const toggleBtn = document.getElementById('toggle-doc-btn');
     const savedState = localStorage.getItem('docToggleState');
     if (savedState === 'docs') {
-        toggleBtn.textContent = 'ОКПД2, ОКВЭД2';
+        toggleBtn.textContent = 'ОКПД, ОКВЭД';
         document.querySelectorAll('.okpd-okved-col').forEach(col => col.style.display = 'none');
         document.querySelectorAll('.doc-col').forEach(col => col.style.display = '');
     } else { //если savedState === 'codes'
@@ -100,8 +100,8 @@ function openEditForm(id) { //GET запрос загружает данные �
             document.getElementById('new-prod_name').value = data.prod_name;
             document.getElementById('new-prod_mark').value = data.prod_mark;
             document.getElementById('new-prod_number').value = data.prod_number;
-            document.getElementById('new-prod_okpd2').value = data.prod_okpd2;
-            document.getElementById('new-prod_okved2').value = data.prod_okved2;
+            document.getElementById('new-prod_okpd').value = data.prod_okpd;
+            document.getElementById('new-prod_okved').value = data.prod_okved;
             // Заполнение выпадающего списка категорий
             fetchCategories().then(categories => {
                 const select = document.getElementById('new-category_id'); //поле <select> формы "Категория:"
@@ -168,20 +168,18 @@ function updateRow(id) { //Отправляет PUT запрос на серве
         prod_name: document.getElementById('new-prod_name').value,
         prod_mark: document.getElementById('new-prod_mark').value,
         prod_number: document.getElementById('new-prod_number').value,
-        prod_okpd2: document.getElementById('new-prod_okpd2').value,
-        prod_okved2: document.getElementById('new-prod_okved2').value,
+        prod_okpd: document.getElementById('new-prod_okpd').value,
+        prod_okved: document.getElementById('new-prod_okved').value,
         docs
     };
     fetch(`http://172.22.1.106/api/main/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-    })
-        .then(response => response.json())
-        .then(() => {
-            closeForm();
-            loadData();
-        });
+    }).then(response => response.json()).then(() => {
+        closeForm();
+        loadData();
+    });
 }
 
 //удаление позиции по id
@@ -209,20 +207,18 @@ function createRow() { //Отправляет POST запрос на серве�
         prod_name: document.getElementById('new-prod_name').value,
         prod_mark: document.getElementById('new-prod_mark').value,
         prod_number: document.getElementById('new-prod_number').value,
-        prod_okpd2: document.getElementById('new-prod_okpd2').value,
-        prod_okved2: document.getElementById('new-prod_okved2').value,
+        prod_okpd: document.getElementById('new-prod_okpd').value,
+        prod_okved: document.getElementById('new-prod_okved').value,
         docs
     };
     fetch('http://172.22.1.106/api/main', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-    })
-        .then(response => response.json())
-        .then(() => {
-            closeForm();
-            loadData();
-        });
+    }).then(response => response.json()).then(() => {
+        closeForm();
+        loadData();
+    });
 }
 
 function closeForm() { //Скрывает форму и сбрасывает её поля после создания записи или отмены
@@ -240,7 +236,7 @@ async function fetchCategories() { //запрос списка категори�
     return response.json();
 }
 
-function toggleDocumentation() { //рокировка колонок ОКПД2 ОКЭД2 и Документация, а так же изменения названия конпки. ***нужно сохранять состояние
+function toggleDocumentation() { //рокировка колонок ОКПД ОКЭД и Документация, а так же изменения названия конпки. ***нужно сохранять состояние
     const okpdCols = document.querySelectorAll('.okpd-okved-col');
     const docCols = document.querySelectorAll('.doc-col');
     const toggleBtn = document.getElementById('toggle-doc-btn');
@@ -283,7 +279,9 @@ document.getElementById('toggle-doc-btn').addEventListener('click', toggleDocume
 // Загрузка данных при загрузке страницы
 loadData();
 
-// Функция для отображения контекстного меню
+/** Функция для отображения контекстного меню
+ * @param event событие клика правой кнопкой мыши, координаты клика
+ * @param item данные об изделии из БД*/
 function showContextMenu(event, item) {
 
     // удаление предыдущего контекстного меню
@@ -336,7 +334,8 @@ async function archiveDocs(item) {
         if (!doc.doc_link) return null;
         try {
             let response;
-            let fileUrl = doc.doc_link;
+            let fileUrl = doc.doc_link; //исходная ссылка записанная в БД
+            let finalFilename = doc.doc_name; // Определяем finalFilename заранее
 
             // Проверяем, является ли ссылка локальной
             if (fileUrl.startsWith('\\')) {
@@ -349,7 +348,12 @@ async function archiveDocs(item) {
 
                 if (pdfResponse.ok) {
                     const data = await pdfResponse.json();
-                    fileUrl = data.url;
+                    fileUrl = data.url; //путь с пробелами 'http://172.22.1.106/data/folder1/ЕИУС.468622.001_ППСЦ/ЭД/ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf'
+                    response = await fetch(fileUrl);  // Загружаем файл по полученному URL
+                    if (!response.ok) {
+                        console.error(`Ошибка загрузки ${fileUrl}: ${response.status}`);
+                        return null;
+                    }
                 } else {
                     console.error(`Ошибка получения URL для ${fileUrl}`);
                     return null;
@@ -366,19 +370,18 @@ async function archiveDocs(item) {
                 }
             }
 
-            const fileExtension = getFileExtension(fileUrl); // Получаем расширение из URL
+            const fileExtension = getFileExtension(fileUrl); // Получаем расширение из URL .pdf
 
-            let finalFilename = doc.doc_name;            // Формируем имя файла
             if (fileExtension) {               // Удаляем существующее расширение в имени (если есть)
-                const baseName = finalFilename.replace(/\.[^/.]+$/, '_'); //меняем на _
-                finalFilename = `${baseName}.${fileExtension}`; //формируем имя файла с расширением
+                // const baseName = finalFilename.replace(/\.[^/.]+$/, '_'); //меняем на _
+                finalFilename = `${finalFilename}.${fileExtension}`; //формируем имя файла с расширением 'ПС.pdf'
             }
 
-            const blob = await response.blob();             // 4. Получаем бинарные данные как Blob
+            const blob = await response.blob();             // 4. Получаем бинарные данные как Blob (из внешнего ресурса или из локального - одинаково)
             zip.file(finalFilename, blob, { binary: true });             // 5. Добавляем в архив (БЕЗ вложенных папок)
             console.log(`Добавлен файл: ${finalFilename} (${blob.size} байт)`);
 
-        } catch (error) { console.error(`Ошибка обработки файла ${finalFilename}:`, error); }
+        } catch (error) { console.error(`Ошибка обработки файла:`, error); }
     });
 
     await Promise.all(filesPromises);     // 6. Ждем завершения всех загрузок
