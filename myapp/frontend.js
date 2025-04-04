@@ -3,7 +3,9 @@ async function loadData() { //GET запрос загружает данные �
     const categories = await fetchCategories(); // [ {id: 1, category_id: [1, 1], category_name: 'Аппаратура для связи'}, {...}, ... ]
     // Загрузка изделий
     const response = await fetch('http://172.22.1.106/api/main');
-    const data = await response.json(); // [ {id: 1, category_code: [1, 1], category_name: 'Аппаратура для связи', item_number: [1, 1, 1], prod_name: 'Пункт связи', prod_mark: "ППСЦ", prod_number: "ЕИУС,468622,001", prod_okpd: "26,30,23,170", prod_okved: "26,30,29", }, {...}, ... ]
+    const data = await response.json(); // [ {id: 1, category_code: [1, 1], category_name: 'Аппаратура для связи', item_number: [1, 1, 1], prod_dir: '\\fs3\...', prod_name: 'Пункт связи', prod_mark: "ППСЦ", prod_number: "ЕИУС,468622,001", prod_okpd: "26,30,23,170", prod_okved: "26,30,29", docs: [{doc_name: 'ПС', doc_link: '\\fs3\...pdf'},{...}] }, {...}, ... ]
+    // console.log('data', data);
+
 
     const tableBody = document.getElementById('table-body');
     tableBody.innerHTML = ''; // Очистка таблицы перед загрузкой данных
@@ -20,7 +22,7 @@ async function loadData() { //GET запрос загружает данные �
         // JSON.stringify(item.category_id) === JSON.stringify(category.category_id)
         const categoryItems = data.filter(item => JSON.stringify(item.category_code) === JSON.stringify(category.category_id));  //сравниваем изделия и категории по колонке массива чисел
 
-        categoryItems.forEach(item => {
+        categoryItems.forEach(item => { //заполнение строк таблицы изделий
             const tr = document.createElement('tr');
             tr.setAttribute('data-id', item.id);
             tr.innerHTML = `
@@ -30,12 +32,13 @@ async function loadData() { //GET запрос загружает данные �
                 <td>${item.prod_number}</td>
                 <td class="okpd-okved-col">${item.prod_okpd}</td>
                 <td class="okpd-okved-col">${item.prod_okved}</td>
-                <td class="doc-col" style="display: none;">${item.docs ? formatDocs(item.docs) : ''}</td >
-        `;
+                <td class="doc-col ${item.prod_dir === '' ? 'fail-dir' : ''}" style="display: none;">${item.docs ? formatDocs(item.docs) : ''}</td >
+            `;
             tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши
             tr.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши
                 if (!event.target.closest('a')) { // на ссылках оставляем дефолное выпадающее меню
                     event.preventDefault(); //на остальном контенте...
+
                     showContextMenu(event, item); //...открываем кастомное выпадающее меню, event - для позиционирования меню рядом с кликом, item - объект с данными о кликнутом изделии
                 }
             });
@@ -65,7 +68,7 @@ async function loadData() { //GET запрос загружает данные �
                 const filePath = link.getAttribute('data-link'); // ссылка на документ с локальной машины вида \\fs3\...
                 console.log('filePath', filePath);
 
-                fetch('http://172.22.1.106/api/get-pdf', {
+                fetch('http://172.22.1.106/api/get-file', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ path: filePath })
@@ -102,6 +105,7 @@ function openEditForm(id) { //GET запрос загружает данные �
             document.getElementById('new-prod_number').value = data.prod_number;
             document.getElementById('new-prod_okpd').value = data.prod_okpd;
             document.getElementById('new-prod_okved').value = data.prod_okved;
+            document.getElementById('new-prod_dir').value = data.prod_dir || '';
             // Заполнение выпадающего списка категорий
             fetchCategories().then(categories => {
                 const select = document.getElementById('new-category_id'); //поле <select> формы "Категория:"
@@ -170,7 +174,8 @@ function updateRow(id) { //Отправляет PUT запрос на серве
         prod_number: document.getElementById('new-prod_number').value,
         prod_okpd: document.getElementById('new-prod_okpd').value,
         prod_okved: document.getElementById('new-prod_okved').value,
-        docs
+        docs,
+        prod_dir: document.getElementById('new-prod_dir').value
     };
     fetch(`http://172.22.1.106/api/main/${id}`, {
         method: 'PUT',
@@ -209,7 +214,8 @@ function createRow() { //Отправляет POST запрос на серве�
         prod_number: document.getElementById('new-prod_number').value,
         prod_okpd: document.getElementById('new-prod_okpd').value,
         prod_okved: document.getElementById('new-prod_okved').value,
-        docs
+        docs,
+        prod_dir: document.getElementById('new-prod_dir').value
     };
     fetch('http://172.22.1.106/api/main', {
         method: 'POST',
@@ -293,16 +299,30 @@ function showContextMenu(event, item) {
     contextMenu.classList.add('context-menu');
     contextMenu.innerHTML = `
         <ul>
-            <li class="context-menu-item" data-action="archive">Архивировать документацию</li>
+            <li class="context-menu-item" id="archive-docs" data-action="archive">Архивировать документацию</li>
+            <li class="context-menu-item" id="dir-docs" data-action="archive">Папка с документацией</li>
         </ul>
     `;
     document.body.appendChild(contextMenu); //добавляем построенное всплывающее меню
     contextMenu.style.left = `${event.pageX}px`; //позиционируем рядом с кликом
     contextMenu.style.top = `${event.pageY}px`;
 
-    // Обработка выбора пункта меню
-    contextMenu.querySelector('.context-menu-item').addEventListener('click', () => { //событите на кнопку из всплывающего меню "Архивировать документацию"
+    // Обработка выбора пункта меню "Архивировать документацию"
+    contextMenu.querySelector('#archive-docs').addEventListener('click', () => { //событите на кнопку из всплывающего меню "Архивировать документацию"
         archiveDocs(item); //архивирования документов на кликнутое правой кнопкой изделие
+        contextMenu.remove(); //удаление вспл меню
+    });
+    // Обработка выбора пункта меню "Папка с документацией"
+    contextMenu.querySelector('#dir-docs').addEventListener('click', async () => { //событите на кнопку из всплывающего меню "Архивировать документацию"
+        console.log('Папка с документацией'); //здесь надо открывать директорию, которая сохранена в БД, и доступна в этом файле через объект item.dir-doc
+
+        if (item.prod_dir) { //если есть ссылка на директорию
+            openDirectoryModal(item.prod_dir); //открываем директорию, выводим модальное окно
+        } else {
+            alert('Нет адреса директории для изделия')
+            console.error('Нет адреса директории для изделия');
+        }
+
         contextMenu.remove(); //удаление вспл меню
     });
     // Удаление контекстного меню при клике вне его
@@ -340,7 +360,7 @@ async function archiveDocs(item) {
             // Проверяем, является ли ссылка локальной
             if (fileUrl.startsWith('\\')) {
                 // Запрашиваем URL для локального файла
-                const pdfResponse = await fetch('http://172.22.1.106/api/get-pdf', {
+                const pdfResponse = await fetch('http://172.22.1.106/api/get-file', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ path: fileUrl })
@@ -411,4 +431,103 @@ async function archiveDocs(item) {
 
     console.log('Архив успешно создан');
     console.log(`'${item.prod_number}'_'${item.prod_mark}'_'${item.prod_name}'`);
+}
+
+//Функция показа содержимого директории изделия
+async function openDirectoryModal(directoryUrl) { // directoryUrl === \\fs3\Технический архив\ЕИУС.468622.001_ППСЦ\ЭД
+    const modal = document.getElementById('directory-modal');
+    const modalContent = document.getElementById('directory-content');
+    const backdrop = document.querySelector('.modal-backdrop');
+
+    console.log('directoryUrl', directoryUrl);
+
+    // Функция для загрузки содержимого директории
+    const loadDirectoryContent = async (path) => {
+        console.log('path', path);
+
+        const response = await fetch('http://172.22.1.106/api/get-dir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path })
+        });
+
+        if (response.ok) {
+            return await response.json(); //возвращает названия файлов/директори в json [{name: '1.pdf', isDirectory: false}, {name: 'directory', isDirectory: true}, ...]
+        } else {
+            throw new Error('Ошибка загрузки содержимого директории');
+        }
+    };
+
+    // Функция для рекурсивного отображения содержимого директории
+    const displayDirectoryContent = async (path, parentElement) => {
+        try {
+            const files = await loadDirectoryContent(path); //возвращает названия файлов/директори в json [{name: '1.pdf', isDirectory: false}, {name: 'directory', isDirectory: true}, ...]
+            files.forEach(file => {
+
+                if (file.name === 'Thumbs.db') return; //файлы которые ненадо показывать
+
+                const fileElement = document.createElement('div');
+                const fileElementName = document.createElement('p');
+                fileElementName.textContent = file.name
+                fileElement.append(fileElementName);
+
+                if (file.isDirectory) {
+                    fileElement.classList.add('directory');
+                    fileElementName.addEventListener('click', async () => {
+                        const subDirectoryPath = `${path}\\${file.name}`;
+                        if (fileElement.classList.contains('expanded')) {
+                            // Удаляем содержимое, если директория уже раскрыта
+                            const allDivs = fileElement.querySelectorAll('div'); //выбираем все дочерние div элементы
+                            allDivs.forEach(div => div.remove()); //удаляем их
+                            fileElement.classList.remove('expanded');
+                        } else {
+                            await displayDirectoryContent(subDirectoryPath, fileElement);
+                            fileElement.classList.toggle('expanded');
+                        }
+                    });
+                } else {
+                    fileElement.classList.add('file');
+                    fileElement.setAttribute('data-link', path + '/' + file.name);
+                    fileElementName.addEventListener('click', () => {
+                        const fileUrl = `http://172.22.1.106/api/get-file`;
+                        fetch(fileUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ path: fileElement.getAttribute('data-link') })
+                        }).then(response => {
+                            if (response.ok) {
+                                return response.json();
+                            }
+                            throw new Error('Network response was not ok.');
+                        }).then(data => {
+                            window.open(data.url, '_blank');
+                        }).catch(error => console.error('Error fetching the PDF:', error));
+                    });
+                }
+
+                parentElement.appendChild(fileElement);
+            });
+        } catch (error) {
+            console.error(error);
+            parentElement.textContent = 'Ошибка загрузки содержимого директории';
+        }
+    };
+
+    modalContent.innerHTML = ''; //очищаем модальное окно
+
+    await displayDirectoryContent(directoryUrl, modalContent);
+
+    modal.style.display = 'block';
+    backdrop.style.display = 'block';
+
+    // Закрытие модального окна
+    document.querySelector('.close-button').onclick = () => {
+        modal.style.display = 'none';
+        backdrop.style.display = 'none';
+    };
+
+    backdrop.onclick = () => {
+        modal.style.display = 'none';
+        backdrop.style.display = 'none';
+    };
 }

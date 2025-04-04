@@ -3,12 +3,13 @@ import cors from "cors";
 import { pool, ensureTableExists, table_name } from "./db.js";
 import fs from "fs";
 import https from "https";
+import path from "path";
 
 const app = express();
 app.use(cors());
 app.use(express.json()); // middleware для обработки JSON автоматически парсит входящие запросы с заголовком Content-Type: application/json и добавляет данные в req.body
 app.use((req, res, next) => { // Отладочный middleware для логирования запрашиваемых путей
-    console.log(`Request URL: ${req.originalUrl}`);
+    console.log(`${req.method} Request URL: ${req.originalUrl}`);
     next();
 });
 app.use('/data/folder1', express.static('/data/folder1')); // Укажите директорию, где находятся ваши PDF-файлы
@@ -27,7 +28,8 @@ app.get('/api/main', async (req, res) => {
                 p.prod_mark,
                 p.prod_number,
                 p.prod_okpd,
-                p.prod_okved
+                p.prod_okved,
+                p.prod_dir
             FROM
                 ${table_name} p
             JOIN  -- Если нужны все продукты (включая те, у которых нет категории), используйте LEFT JOIN
@@ -102,15 +104,36 @@ app.get('/api/categories', async (req, res) => {
     } finally { client.release(); }
 });
 
-//маршрут получения доступа к статическому файлу PDF...
-app.post('/api/get-pdf', (req, res) => {
+//маршрут получения доступа к статическому файлу PDF
+app.post('/api/get-file', (req, res) => {
     const originalPath = req.body.path;
     try {
-        const newPath = originalPath.replace(/\\\\fs3\\Производственный архив центрального офиса\\/, '/data/folder1/').replace(/\\/g, '/'); // Замена пути
+        const newPath = originalPath.replace(/\\\\fs3\\Технический архив\\/, '/data/folder1/').replace(/\\/g, '/'); // Замена пути
         if (fs.existsSync(newPath)) { // Проверка существования файла - вариант статического файла
             const fileUrl = `http://${req.headers.host}${newPath}`; //создание пути к статическому файлу
             res.json({ url: fileUrl }); // Возвращаем в ответе URL для доступа к статическому файлу
         } else { res.status(404).send('File not found'); }
+    } catch (error) {
+        console.error('Error processing the request:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// Маршрут для получения содержимого директории
+app.post('/api/get-dir', (req, res) => {
+    const directoryUrl = req.body.path; // directoryUrl === \\fs3\Технический архив\ЕИУС.468622.001_ППСЦ\ЭД
+    console.log('directoryUrl', directoryUrl);
+
+    try {
+        const newPath = directoryUrl.replace(/\\\\fs3\\Технический архив\\/, '/data/folder1/').replace(/\\/g, '/');
+        if (fs.existsSync(newPath) && fs.lstatSync(newPath).isDirectory()) { //проверяет что по адресу существует чтото и что это директория
+            const files = fs.readdirSync(newPath); //содержимое директории названия файлов/директорий возвращает в массив
+            const filesData = files.map(file => ({
+                name: file,                 //название файла/директории
+                isDirectory: fs.lstatSync(path.join(newPath, file)).isDirectory()  //файл - false, директория - true
+            }));
+            res.json(filesData);
+        } else { res.status(404).send('Directory not found'); }
     } catch (error) {
         console.error('Error processing the request:', error);
         res.status(500).send('Internal Server Error');
@@ -142,7 +165,9 @@ app.post('/api/download-external', (req, res) => {
 //маршрут изменение записи :id в таблице
 app.put('/api/main/:id', async (req, res) => {
     const { id } = req.params;
-    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, docs } = req.body;
+    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, docs, prod_dir } = req.body;
+    // console.log('req.body из PUT запроса обновления данных', req.body);
+
     const client = await pool.connect();
     try {
         await client.query(`
@@ -155,10 +180,11 @@ app.put('/api/main/:id', async (req, res) => {
                 prod_mark = $4,
                 prod_number = $5,
                 prod_okpd = $6,
-                prod_okved = $7
+                prod_okved = $7,
+                prod_dir = $8
             WHERE  -- обновление применяется только к 1 записи параметров изделия
-                id = $8
-        `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, id]);
+                id = $9
+        `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, prod_dir, id]);
         await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);  //удаляет всю документацию одного изделия. ***нужно сделать чтобы избирательно удалял
         if (docs && docs.length > 0) {
             const insertDocsQuery = `
@@ -177,17 +203,19 @@ app.put('/api/main/:id', async (req, res) => {
 
 //маршрут добавления новой записи
 app.post('/api/main', async (req, res) => {
-    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, docs } = req.body;
+    const { category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, docs, prod_dir } = req.body;
+    // console.log('req.body из POST запроса добавления новой записи', req.body);
+
     const client = await pool.connect();
     try {
         const result = await client.query(`
             INSERT INTO
-                ${table_name} (category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved)
+                ${table_name} (category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, prod_dir)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7)
+                ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING  -- возвращает id новой записи из table_name
                 id
-        `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved]);
+        `, [category_id, item_number, prod_name, prod_mark, prod_number, prod_okpd, prod_okved, prod_dir]);
 
         const prodId = result.rows[0].id;
 
