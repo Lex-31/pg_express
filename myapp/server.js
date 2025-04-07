@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // middleware для обработки JSON автоматически парсит входящие запросы с заголовком Content-Type: application/json и добавляет данные в req.body
 app.use((req, res, next) => { // Отладочный middleware для логирования запрашиваемых путей
-    console.log(`${req.method} Request URL: ${req.originalUrl}`);
+    console.log(`${new Date()} from ${req.header('x-forwarded-for') || req.ip} ${req.method} Request URL: ${req.originalUrl}`);
     next();
 });
 app.use('/data/folder1', express.static('/data/folder1')); // Укажите директорию, где находятся ваши PDF-файлы
@@ -21,7 +21,7 @@ app.get('/api/main', async (req, res) => {
         const result = await client.query(`
             SELECT
                 p.id,
-                c.category_id AS category_code,  -- переименовываем table_name_category.category_id в category_code
+                c.category_id AS category_code,
                 c.category_name,
                 p.item_number,
                 p.prod_name,
@@ -32,7 +32,7 @@ app.get('/api/main', async (req, res) => {
                 p.prod_dir
             FROM
                 ${table_name} p
-            JOIN  -- Если нужны все продукты (включая те, у которых нет категории), используйте LEFT JOIN
+            JOIN  -- Если нужны все продукты (включая те, у которых нет категории) LEFT JOIN
                 ${table_name}_category c
                 ON p.category_id = c.category_id  -- соединяет таблицы по полю category_id
             ORDER BY
@@ -62,8 +62,8 @@ app.get('/api/main/:id', async (req, res) => {
     try {
         const result = await client.query(`
             SELECT
-                p.*,  -- выбрать все поля таблицы table_name
-                c.category_id AS category_code,  -- переименовываем table_name_category.category_id в category_code
+                p.*,
+                c.category_id AS category_code,
                 c.category_name
             FROM
                 ${table_name} p
@@ -123,7 +123,6 @@ app.post('/api/get-file', (req, res) => {
 app.post('/api/get-dir', (req, res) => {
     const directoryUrl = req.body.path; // directoryUrl === \\fs3\Технический архив\ЕИУС.468622.001_ППСЦ\ЭД
     console.log('directoryUrl', directoryUrl);
-
     try {
         const newPath = directoryUrl.replace(/\\\\fs3\\Технический архив\\/, '/data/folder1/').replace(/\\/g, '/');
         if (fs.existsSync(newPath) && fs.lstatSync(newPath).isDirectory()) { //проверяет что по адресу существует чтото и что это директория
@@ -147,7 +146,7 @@ app.post('/api/download-external', (req, res) => {
         const request = https.get(url, (response) => {
             if (response.statusCode === 200) {
                 const fileName = url.split('/').pop();
-                res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+                res.header('Content-Disposition', `attachment; filename=${fileName}`);
                 response.pipe(res);
             } else { res.status(response.statusCode).send('Failed to download file'); }
         });

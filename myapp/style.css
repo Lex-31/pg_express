@@ -306,6 +306,7 @@ ul {
     cursor: pointer;
 }
 
+/*Наведение на файлы и директории*/
 .file p,
 .directory p {
     cursor: pointer;
@@ -317,6 +318,7 @@ ul {
     background-color: #bfd3f7;
 }
 
+/*Отступ для списка файлов и директорий*/
 .directory .file {
     margin-left: 20px;
 }

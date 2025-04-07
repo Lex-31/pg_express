@@ -1,11 +1,12 @@
+const serverUrl = '172.22.1.106';
+
 async function loadData() { //GET запрос загружает данные из сервера и обновляет таблицу
     // Загрузка всех категорий
     const categories = await fetchCategories(); // [ {id: 1, category_id: [1, 1], category_name: 'Аппаратура для связи'}, {...}, ... ]
     // Загрузка изделий
-    const response = await fetch('http://172.22.1.106/api/main');
+    const response = await fetch(`http://${serverUrl}/api/main`);
     const data = await response.json(); // [ {id: 1, category_code: [1, 1], category_name: 'Аппаратура для связи', item_number: [1, 1, 1], prod_dir: '\\fs3\...', prod_name: 'Пункт связи', prod_mark: "ППСЦ", prod_number: "ЕИУС,468622,001", prod_okpd: "26,30,23,170", prod_okved: "26,30,29", docs: [{doc_name: 'ПС', doc_link: '\\fs3\...pdf'},{...}] }, {...}, ... ]
     // console.log('data', data);
-
 
     const tableBody = document.getElementById('table-body');
     tableBody.innerHTML = ''; // Очистка таблицы перед загрузкой данных
@@ -68,7 +69,7 @@ async function loadData() { //GET запрос загружает данные �
                 const filePath = link.getAttribute('data-link'); // ссылка на документ с локальной машины вида \\fs3\...
                 console.log('filePath', filePath);
 
-                fetch('http://172.22.1.106/api/get-file', {
+                fetch(`http://${serverUrl}/api/get-file`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ path: filePath })
@@ -95,7 +96,7 @@ function formatDocs(docs) { //создает ссылку и раскрашив�
 }
 
 function openEditForm(id) { //GET запрос загружает данные конкретной записи по id 
-    fetch(`http://172.22.1.106/api/main/${id}`) //сервер принимает как app.get('//test/:id'
+    fetch(`http://${serverUrl}/api/main/${id}`) //сервер принимает как app.get('//test/:id'
         .then(response => response.json())
         .then(data => {
             document.getElementById('new-id').textContent = data.id;
@@ -177,7 +178,7 @@ function updateRow(id) { //Отправляет PUT запрос на серве
         docs,
         prod_dir: document.getElementById('new-prod_dir').value
     };
-    fetch(`http://172.22.1.106/api/main/${id}`, {
+    fetch(`http://${serverUrl}/api/main/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -189,7 +190,7 @@ function updateRow(id) { //Отправляет PUT запрос на серве
 
 //удаление позиции по id
 function deleteRow(id) {
-    fetch(`http://172.22.1.106/api/main/${id}`, { method: 'DELETE', })
+    fetch(`http://${serverUrl}/api/main/${id}`, { method: 'DELETE', })
         .then(response => response.json())
         .then(() => {
             closeForm();
@@ -217,7 +218,7 @@ function createRow() { //Отправляет POST запрос на серве�
         docs,
         prod_dir: document.getElementById('new-prod_dir').value
     };
-    fetch('http://172.22.1.106/api/main', {
+    fetch(`http://${serverUrl}/api/main`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -238,7 +239,7 @@ function closeForm() { //Скрывает форму и сбрасывает е�
 }
 
 async function fetchCategories() { //запрос списка категорий
-    const response = await fetch('http://172.22.1.106/api/categories');
+    const response = await fetch(`http://${serverUrl}/api/categories`);
     return response.json();
 }
 
@@ -360,7 +361,7 @@ async function archiveDocs(item) {
             // Проверяем, является ли ссылка локальной
             if (fileUrl.startsWith('\\')) {
                 // Запрашиваем URL для локального файла
-                const pdfResponse = await fetch('http://172.22.1.106/api/get-file', {
+                const pdfResponse = await fetch(`http://${serverUrl}/api/get-file`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ path: fileUrl })
@@ -368,7 +369,7 @@ async function archiveDocs(item) {
 
                 if (pdfResponse.ok) {
                     const data = await pdfResponse.json();
-                    fileUrl = data.url; //путь с пробелами 'http://172.22.1.106/data/folder1/ЕИУС.468622.001_ППСЦ/ЭД/ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf'
+                    fileUrl = data.url; //путь с пробелами 'http://${serverUrl}/data/folder1/ЕИУС.468622.001_ППСЦ/ЭД/ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf'
                     response = await fetch(fileUrl);  // Загружаем файл по полученному URL
                     if (!response.ok) {
                         console.error(`Ошибка загрузки ${fileUrl}: ${response.status}`);
@@ -379,7 +380,7 @@ async function archiveDocs(item) {
                     return null;
                 }
             } else { //иначе это внешняя ссылка
-                response = await fetch('http://172.22.1.106/api/download-external', { //запрашиваем файл через прокси-сервер
+                response = await fetch(`http://${serverUrl}/api/download-external`, { //запрашиваем файл через прокси-сервер
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: fileUrl })
@@ -445,7 +446,7 @@ async function openDirectoryModal(directoryUrl) { // directoryUrl === \\fs3\Те
     const loadDirectoryContent = async (path) => {
         console.log('path', path);
 
-        const response = await fetch('http://172.22.1.106/api/get-dir', {
+        const response = await fetch(`http://${serverUrl}/api/get-dir`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ path })
@@ -489,8 +490,7 @@ async function openDirectoryModal(directoryUrl) { // directoryUrl === \\fs3\Те
                     fileElement.classList.add('file');
                     fileElement.setAttribute('data-link', path + '/' + file.name);
                     fileElementName.addEventListener('click', () => {
-                        const fileUrl = `http://172.22.1.106/api/get-file`;
-                        fetch(fileUrl, {
+                        fetch(`http://${serverUrl}/api/get-file`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ path: fileElement.getAttribute('data-link') })
