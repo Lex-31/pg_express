@@ -1,12 +1,11 @@
-const serverUrl = '172.22.1.106';
+import { DataManager } from './dataManager.js';
+import { EventManager } from './eventManager.js';
+import { serverUrl } from './config.js';
 
 async function loadData() { //GET запрос загружает данные из сервера и обновляет таблицу
-    // Загрузка всех категорий
-    const categories = await fetchCategories(); // [ {id: 1, category_id: [1, 1], category_name: 'Аппаратура для связи'}, {...}, ... ]
-    // Загрузка изделий
-    const response = await fetch(`http://${serverUrl}/api/main`);
-    const data = await response.json(); // [ {id: 1, category_code: [1, 1], category_name: 'Аппаратура для связи', item_number: [1, 1, 1], prod_dir: '\\fs3\...', prod_name: 'Пункт связи', prod_mark: "ППСЦ", prod_number: "ЕИУС,468622,001", prod_okpd: "26,30,23,170", prod_okved: "26,30,29", docs: [{doc_name: 'ПС', doc_link: '\\fs3\...pdf'},{...}] }, {...}, ... ]
-    // console.log('data', data);
+    const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
+    const products = await DataManager.fetchProducts();  // Загрузка изделий
+
 
     const tableBody = document.getElementById('table-body');
     tableBody.innerHTML = ''; // Очистка таблицы перед загрузкой данных
@@ -21,7 +20,7 @@ async function loadData() { //GET запрос загружает данные �
 
         // Фильтрация изделий по текущей категории
         // JSON.stringify(item.category_id) === JSON.stringify(category.category_id)
-        const categoryItems = data.filter(item => JSON.stringify(item.category_code) === JSON.stringify(category.category_id));  //сравниваем изделия и категории по колонке массива чисел
+        const categoryItems = products.filter(item => JSON.stringify(item.category_code) === JSON.stringify(category.category_id));  //сравниваем изделия и категории по колонке массива чисел
 
         categoryItems.forEach(item => { //заполнение строк таблицы изделий
             const tr = document.createElement('tr');
@@ -67,7 +66,6 @@ async function loadData() { //GET запрос загружает данные �
             link.addEventListener('click', (event) => {
                 event.preventDefault(); //не будем пытаться открыть этот ресурс в новой вкладке
                 const filePath = link.getAttribute('data-link'); // ссылка на документ с локальной машины вида \\fs3\...
-                console.log('filePath', filePath);
 
                 fetch(`http://${serverUrl}/api/get-file`, {
                     method: 'POST',
@@ -86,53 +84,51 @@ async function loadData() { //GET запрос загружает данные �
 }
 
 function formatDocs(docs) { //создает ссылку и раскрашивает документы, есть ссылка - зеленый, нет ссылки - красный
-    const stringLinks = docs.map(doc => {
+    return docs.map(doc => {
         // const encodedLink = doc.doc_link ? doc.doc_link.replace(/ /g, '%20') : '';  //замена пробелов в ссылке на %20
         const encodedLink = doc.doc_link // ссылка формата как она хранится  в БД \\fs3\Производственный архив центрального офиса\ЕИУС.468622.001_ППСЦ\ЭД\ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf
         const link = encodedLink ? `<a href="${encodedLink}" data-link="${encodedLink}" class="link-to-doc" style="color: green;" target="_blank">${doc.doc_name}</a>` : `<span style="color: red;">${doc.doc_name}</span>`; //ссылка существует - зеленый цвет выбираем, отсутвует - красный
         return link; //возвращает в новый массив(map) готовых HTML ссылок
     }).join(' '); //массив готовых HTML ссылок преобразовывает в строку где ссылки разделены пробелом
-    return stringLinks;
 }
 
-function openEditForm(id) { //GET запрос загружает данные конкретной записи по id 
-    fetch(`http://${serverUrl}/api/main/${id}`) //сервер принимает как app.get('//test/:id'
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('new-id').textContent = data.id;
-            document.getElementById('new-item_number').value = data.item_number.slice(-1)[0];
-            document.getElementById('new-prod_name').value = data.prod_name;
-            document.getElementById('new-prod_mark').value = data.prod_mark;
-            document.getElementById('new-prod_number').value = data.prod_number;
-            document.getElementById('new-prod_okpd').value = data.prod_okpd;
-            document.getElementById('new-prod_okved').value = data.prod_okved;
-            document.getElementById('new-prod_dir').value = data.prod_dir || '';
-            // Заполнение выпадающего списка категорий
-            fetchCategories().then(categories => {
-                const select = document.getElementById('new-category_id'); //поле <select> формы "Категория:"
-                select.innerHTML = '';
-                categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.category_id;  //значение опции = массив [1,1] конктреной категории из табл. категорий
-                    option.textContent = `${category.category_id.join('.')} ${category.category_name}`;  //текст внутри опции = "1.1 Название этой категории"
-                    if (JSON.stringify(category.category_id) === JSON.stringify(data.category_id)) {  //если значение категории в категории и у изделия одинаковы [1,1] === [1,1]
-                        option.selected = true;  //делаем эту опцию(категорию) выбранной при открытии формы
-                    }
-                    select.append(option);
-                });
-            });
-            // Заполнение полей документации
-            const docContainer = document.getElementById('doc-container'); //контейнер для полей документации в форме
-            docContainer.innerHTML = '';
-            data.docs.forEach(doc => {
-                addDocField(doc.doc_name, doc.doc_link);
-            });
-            document.getElementById('form-submit-btn').textContent = 'Обновить';
-            document.getElementById('form-submit-btn').onclick = () => updateRow(id);
-            document.getElementById('form-delete-btn').onclick = () => deleteRow(id);
-            document.getElementById('new-form-container').style.display = 'block';
-            document.querySelector('.modal-backdrop').style.display = 'block';
-        });
+async function openEditForm(id) { //GET запрос загружает данные конкретной записи по id 
+    const data = await DataManager.fetchProductById(id);
+
+    document.getElementById('new-id').textContent = data.id;
+    document.getElementById('new-item_number').value = data.item_number.slice(-1)[0];
+    document.getElementById('new-prod_name').value = data.prod_name;
+    document.getElementById('new-prod_mark').value = data.prod_mark;
+    document.getElementById('new-prod_number').value = data.prod_number;
+    document.getElementById('new-prod_okpd').value = data.prod_okpd;
+    document.getElementById('new-prod_okved').value = data.prod_okved;
+    document.getElementById('new-prod_dir').value = data.prod_dir || '';
+    // Заполнение выпадающего списка категорий
+    const categories = await DataManager.fetchCategories();
+    const select = document.getElementById('new-category_id'); //поле <select> формы "Категория:"
+    select.innerHTML = '';
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.category_id;  //значение опции = массив [1,1] конктреной категории из табл. категорий
+        option.textContent = `${category.category_id.join('.')} ${category.category_name}`;  //текст внутри опции = "1.1 Название этой категории"
+        if (JSON.stringify(category.category_id) === JSON.stringify(data.category_id)) {  //если значение категории в категории и у изделия одинаковы [1,1] === [1,1]
+            option.selected = true;  //делаем эту опцию(категорию) выбранной при открытии формы
+        }
+        select.append(option);
+    });
+
+    // Заполнение полей документации
+    const docContainer = document.getElementById('doc-container'); //контейнер для полей документации в форме
+    docContainer.innerHTML = '';
+    data.docs.forEach(doc => {
+        addDocField(doc.doc_name, doc.doc_link);
+    });
+
+    document.getElementById('form-submit-btn').textContent = 'Обновить';
+    document.getElementById('form-submit-btn').onclick = () => updateRow(id);
+    document.getElementById('form-delete-btn').onclick = () => deleteRow(id);
+    document.getElementById('new-form-container').style.display = 'block';
+    document.querySelector('.modal-backdrop').style.display = 'block';
 }
 
 /**добавление нового поля для документа. ***можно поле docName заполнять по умолчанию например NONE
@@ -158,7 +154,7 @@ document.getElementById('add-doc-btn').addEventListener('click', () => { //ко�
     addDocField();
 });
 
-function updateRow(id) { //Отправляет PUT запрос на сервер с обновленными данными
+async function updateRow(id) { //Отправляет PUT запрос на сервер с обновленными данными
     const category_id = document.getElementById('new-category_id').value.split(',').map(Number);   //"1,1" -> [1, 2]. Выбираем HTML элемент <select>(выпадающ. список катег.), value - берем  значение "1,1" выбранного option, split - разделяем строку на массив подстрок ("1,2,3" -> ["1", "2", "3"]) используя разделитель ",", map - каждое значение массива строк ["1", "2", "3"] преобразуется в массив чисел [1, 2, 3]
     const item_number = document.getElementById('new-item_number').value; //порядковый номер изделия из формы
     const docFields = document.querySelectorAll('.doc-field'); //выбрать все строки с документами в форме изделия
@@ -178,27 +174,20 @@ function updateRow(id) { //Отправляет PUT запрос на серве
         docs,
         prod_dir: document.getElementById('new-prod_dir').value
     };
-    fetch(`http://${serverUrl}/api/main/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    }).then(response => response.json()).then(() => {
-        closeForm();
-        loadData();
-    });
+
+    await DataManager.updateProduct(id, data);
+    // closeForm();
+    loadData();
 }
 
 //удаление позиции по id
-function deleteRow(id) {
-    fetch(`http://${serverUrl}/api/main/${id}`, { method: 'DELETE', })
-        .then(response => response.json())
-        .then(() => {
-            closeForm();
-            loadData();
-        });
+async function deleteRow(id) {
+    await DataManager.deleteProduct(id);
+    // closeForm();
+    loadData();
 }
 
-function createRow() { //Отправляет POST запрос на сервер для создания новой записи
+async function createRow() { //Отправляет POST запрос на сервер для создания новой записи
     const category_id = document.getElementById('new-category_id').value.split(',').map(Number);  //"1,1" -> [1, 2]. Выбираем HTML элемент <select>(выпадающ. список катег.), value - берем значение "1,1" выбранного option, split - разделяем строку на массив подстрок ("1,2,3" -> ["1", "2", "3"]) используя разделитель ",", map - каждое значение массива строк ["1", "2", "3"] преобразуется в массив чисел [1, 2, 3]
     const item_number = document.getElementById('new-item_number').value; //порядковый номер изделия из формы
     const docFields = document.querySelectorAll('.doc-field');
@@ -218,71 +207,33 @@ function createRow() { //Отправляет POST запрос на серве�
         docs,
         prod_dir: document.getElementById('new-prod_dir').value
     };
-    fetch(`http://${serverUrl}/api/main`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    }).then(response => response.json()).then(() => {
-        closeForm();
-        loadData();
-    });
+
+    await DataManager.createProduct(data);
+    // fetch(`http://${serverUrl}/api/main`, {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(data)
+    // })
+    // closeForm();
+    loadData();
 }
 
-function closeForm() { //Скрывает форму и сбрасывает её поля после создания записи или отмены
-    document.getElementById('new-form-container').style.display = 'none';
-    document.querySelector('.modal-backdrop').style.display = 'none';
-    document.getElementById('new-form').reset();
-    document.getElementById('form-submit-btn').textContent = 'Создать';
-    document.getElementById('form-submit-btn').onclick = createRow;
-    document.getElementById('form-delete-btn').onclick = null;
-    document.getElementById('doc-container').innerHTML = '';
-}
+// function closeForm() { //Скрывает форму и сбрасывает её поля после создания записи или отмены
+// }
 
-async function fetchCategories() { //запрос списка категорий
-    const response = await fetch(`http://${serverUrl}/api/categories`);
-    return response.json();
-}
+// document.getElementById('form-close-btn').addEventListener('click', closeForm); //закрытие формы
 
-function toggleDocumentation() { //рокировка колонок ОКПД ОКЭД и Документация, а так же изменения названия конпки. ***нужно сохранять состояние
-    const okpdCols = document.querySelectorAll('.okpd-okved-col');
-    const docCols = document.querySelectorAll('.doc-col');
-    const toggleBtn = document.getElementById('toggle-doc-btn');
+// function toggleDocumentation() { //рокировка колонок ОКПД ОКЭД и Документация, а так же изменения названия конпки. ***нужно сохранять состояние
 
-    if (toggleBtn.textContent === 'Документация') {
-        toggleBtn.textContent = 'ОКПД, ОКВЭД';
-        okpdCols.forEach(col => col.style.display = 'none');
-        docCols.forEach(col => col.style.display = '');
-        localStorage.setItem('docToggleState', 'docs');
-    } else {
-        toggleBtn.textContent = 'Документация';
-        okpdCols.forEach(col => col.style.display = '');
-        docCols.forEach(col => col.style.display = 'none');
-        localStorage.setItem('docToggleState', 'codes');
-    }
-}
+// }
 
-document.getElementById('new-btn').addEventListener('click', () => { //открывает форму при создании новой записи
-    fetchCategories().then(categories => {  //cateroties = [ { category_id: [1,1], category_name: 'Аппаратура', id: 1 }, {...}, ... ]
-        const select = document.getElementById('new-category_id');
-        select.innerHTML = '';
-        categories.forEach(category => {
-            const option = document.createElement('option');  //внутри выпадающего списка select создаем элементы списка option
-            option.value = category.category_id;
-            option.textContent = `${category.category_id.join('.')} ${category.category_name}`;
-            select.append(option);  // в HTML элемент select вставляем весь список категорий option
-        });
-        document.getElementById('new-form-container').style.display = 'block';
-        document.querySelector('.modal-backdrop').style.display = 'block';
-        document.getElementById('form-submit-btn').textContent = 'Создать';
-        document.getElementById('form-submit-btn').onclick = createRow;
-        document.getElementById('form-delete-btn').onclick = null;
-        document.getElementById('new-id').textContent = ''; //очищает значение ID при создании новой записи
-        document.getElementById('doc-container').innerHTML = ''; //*** возможно ненужно, чтоб можно было копировать записи
-    });
-});
+// document.getElementById('new-btn').addEventListener('click', async () => { //открывает форму при создании новой записи
+// });
 
-document.getElementById('toggle-doc-btn').addEventListener('click', toggleDocumentation);
+//document.getElementById('toggle-doc-btn').addEventListener('click', toggleDocumentation);
 
+// Навешивание событий на элементы управления
+EventManager.addEventListeners();
 // Загрузка данных при загрузке страницы
 loadData();
 
