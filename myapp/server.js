@@ -22,6 +22,14 @@ const PORT = 3000;
 // выводит информацию о том, что произошло неперехваченное отклонение промиса, а также причину отклонения и сам промис
 process.on('unhandledRejection', (reason, promise) => { console.error('Unhandled Rejection at:', promise, 'reason:', reason); });  // срабатывает при возникновении необработанного отклонения промиса
 
-DbService.ensureTableExists().then(() => { //создание таблицы и заполнение БД
-    app.listen(PORT, () => { console.log(`Server is running on http://localhost:${PORT}`); });
+
+DbService.checkTablesStructure().then(isStructureValid => { //проверка структуры таблицы БД перед запуском сервера
+    if (isStructureValid) {  // 
+        app.listen(PORT, () => {
+            console.log(`Server is running on http://localhost:${PORT}`);
+        });
+    } else {
+        console.log('Проверьте существование и структуру таблиц и перезапустите сервер.');
+        process.exit(1); // Завершаем выполнение скрипта с ошибкой
+    }
 });

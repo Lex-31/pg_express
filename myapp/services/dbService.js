@@ -1,8 +1,11 @@
 import { pool, table_name } from '../config/dbConfig.js';
+import * as readline from 'node:readline/promises';
+import { stdin as input, stdout as output } from 'node:process';
 
 
 /** Класс для создания таблиц в базе данных
- * @method ensureTableExists - метод для создания таблиц в базе данных */
+ * @method ensureTableExists - метод для создания таблиц в базе данных
+ * @method checkTablesStructure - метод для проверки существования и структуры таблиц */
 export class DbService {
     static async ensureTableExists() {
         const client = await pool.connect();
@@ -209,5 +212,100 @@ export class DbService {
                 `);
             }
         } finally { client.release(); }
+    }
+
+    static async checkTablesStructure() {  // метод для проверки существования и структуры таблиц
+        const client = await pool.connect();
+        const rl = readline.createInterface({ input, output });  // интерфейс для чтения ввода в консоли
+        try {
+            const tables = [
+                {
+                    name: table_name,
+                    columns: [
+                        { name: 'id', type: 'integer', nullable: false },
+                        { name: 'category_id', type: 'ARRAY', nullable: true },
+                        { name: 'item_number', type: 'ARRAY', nullable: true },
+                        { name: 'prod_name', type: 'character varying', nullable: true },
+                        { name: 'prod_mark', type: 'character varying', nullable: true },
+                        { name: 'prod_number', type: 'character varying', nullable: true },
+                        { name: 'prod_okpd', type: 'character varying', nullable: true },
+                        { name: 'prod_okved', type: 'character varying', nullable: true },
+                        { name: 'prod_dir', type: 'character varying', nullable: true }
+                    ]
+                },
+                {
+                    name: `${table_name}_category`,
+                    columns: [
+                        { name: 'id', type: 'integer', nullable: false },
+                        { name: 'category_id', type: 'ARRAY', nullable: true },
+                        { name: 'category_name', type: 'character varying', nullable: true }
+                    ]
+                },
+                {
+                    name: `${table_name}_doc`,
+                    columns: [
+                        { name: 'id', type: 'integer', nullable: false },
+                        { name: 'prod_id', type: 'integer', nullable: true },
+                        { name: 'doc_name', type: 'character varying', nullable: true },
+                        { name: 'doc_link', type: 'text', nullable: true }
+                    ]
+                }
+            ];
+
+            for (const table of tables) {  //проходим по всем необходимым для работы таблицам и полчаем их структуру
+                const result = await client.query(`
+                    SELECT 
+                        column_name, -- имя столбца
+                        data_type,   -- тип данных столбца
+                        is_nullable  -- может ли столбец быть пустым
+                    FROM information_schema.columns
+                    WHERE table_name = $1;  -- имя таблицы
+                `, [table.name]);
+
+                if (result.rowCount === 0) {  //если таблица не существует
+                    const userResponse = await rl.question(`Таблица ${table.name} отсутствует. Создать таблицу? (ДА/НЕТ): `);
+                    if (userResponse?.toLowerCase() === 'yes' || userResponse?.toLowerCase() === 'y' || userResponse?.toLowerCase() === 'да' || userResponse?.toLowerCase() === 'д') {  // если пользователь ответил ДА
+                        await this.ensureTableExists(); // создаем таблицу
+                        return true; // выходим из цикла и переходим к запуску сервера app.listen(PORT, () => {...
+                    } else {
+                        return false; // выходим из цикла и сервер не запускается
+                    }
+                }
+
+                const columns = result.rows.map(row => ({  //получаем структуру столбцов из результата запроса result
+                    name: row.column_name,
+                    type: row.data_type,
+                    nullable: row.is_nullable === 'YES'
+                }));
+
+                if (!this.compareColumns(columns, table.columns)) { // 
+                    const userResponse = await rl.question(`Таблица ${table.name} не корректна. Пересоздать таблицу? (ДА/НЕТ): `);  //метод question задает вопрос в консоли и ожидает ввод пользователя
+                    if (userResponse?.toLowerCase() === 'yes' || userResponse?.toLowerCase() === 'y' || userResponse?.toLowerCase() === 'да' || userResponse?.toLowerCase() === 'д') {
+                        await this.ensureTableExists();
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        } finally {
+            client.release();
+            rl.close();
+        }
+    }
+
+    static compareColumns(actualColumns, expectedColumns) {  //сравнивает фактическую структуру столбцов actualColumns с ожидаемой expectedColumns
+        if (actualColumns.length !== expectedColumns.length) {  //если количество столбцов не совпадает
+            return false;
+        }
+        for (const column of expectedColumns) { //проходим по всем ожидаемым столбцам
+
+            const actualColumn = actualColumns.find(col => col.name === column.name);  //поиск ожидаемого столбца в фактической структуре, если не находится, то возвращает undefined
+            if (!actualColumn || actualColumn.type !== column.type || actualColumn.nullable !== column.nullable) {
+                return false;
+            }
+        }
+        return true;
     }
 }

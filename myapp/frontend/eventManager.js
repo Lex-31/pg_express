@@ -1,5 +1,6 @@
 import { DataManager } from './dataManager.js';
-// нужно сюда завезти createRow
+import { createRow } from './main.js';
+
 
 /** Класс для управления событиями
  * @method addEventListeners - добавляет обработчики событий для элементов управления */

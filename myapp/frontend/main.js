@@ -6,7 +6,6 @@ async function loadData() { //GET запрос загружает данные �
     const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
     const products = await DataManager.fetchProducts();  // Загрузка изделий
 
-
     const tableBody = document.getElementById('table-body');
     tableBody.innerHTML = ''; // Очистка таблицы перед загрузкой данных
 
@@ -38,7 +37,6 @@ async function loadData() { //GET запрос загружает данные �
             tr.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши
                 if (!event.target.closest('a')) { // на ссылках оставляем дефолное выпадающее меню
                     event.preventDefault(); //на остальном контенте...
-
                     showContextMenu(event, item); //...открываем кастомное выпадающее меню, event - для позиционирования меню рядом с кликом, item - объект с данными о кликнутом изделии
                 }
             });
@@ -175,19 +173,19 @@ async function updateRow(id) { //Отправляет PUT запрос на се
         prod_dir: document.getElementById('new-prod_dir').value
     };
 
-    await DataManager.updateProduct(id, data);
-    // closeForm();
+    await DataManager.updateProduct(id, data); // Отправляем PUT запрос на сервер для обновления записи
+    document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
     loadData();
 }
 
 //удаление позиции по id
 async function deleteRow(id) {
-    await DataManager.deleteProduct(id);
-    // closeForm();
+    await DataManager.deleteProduct(id); // Отправляем DELETE запрос на сервер для удаления записи
+    document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
     loadData();
 }
 
-async function createRow() { //Отправляет POST запрос на сервер для создания новой записи
+export async function createRow() { //Отправляет POST запрос на сервер для создания новой записи
     const category_id = document.getElementById('new-category_id').value.split(',').map(Number);  //"1,1" -> [1, 2]. Выбираем HTML элемент <select>(выпадающ. список катег.), value - берем значение "1,1" выбранного option, split - разделяем строку на массив подстрок ("1,2,3" -> ["1", "2", "3"]) используя разделитель ",", map - каждое значение массива строк ["1", "2", "3"] преобразуется в массив чисел [1, 2, 3]
     const item_number = document.getElementById('new-item_number').value; //порядковый номер изделия из формы
     const docFields = document.querySelectorAll('.doc-field');
@@ -208,34 +206,16 @@ async function createRow() { //Отправляет POST запрос на се�
         prod_dir: document.getElementById('new-prod_dir').value
     };
 
-    await DataManager.createProduct(data);
-    // fetch(`http://${serverUrl}/api/main`, {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(data)
-    // })
-    // closeForm();
+    await DataManager.createProduct(data); // POST запрос на создание изделия
+    document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
     loadData();
 }
 
-// function closeForm() { //Скрывает форму и сбрасывает её поля после создания записи или отмены
-// }
-
-// document.getElementById('form-close-btn').addEventListener('click', closeForm); //закрытие формы
-
-// function toggleDocumentation() { //рокировка колонок ОКПД ОКЭД и Документация, а так же изменения названия конпки. ***нужно сохранять состояние
-
-// }
-
-// document.getElementById('new-btn').addEventListener('click', async () => { //открывает форму при создании новой записи
-// });
-
-//document.getElementById('toggle-doc-btn').addEventListener('click', toggleDocumentation);
-
-// Навешивание событий на элементы управления
-EventManager.addEventListeners();
 // Загрузка данных при загрузке страницы
 loadData();
+// Навешивание событий на элементы управления
+EventManager.addEventListeners();
+
 
 /** Функция для отображения контекстного меню
  * @param event событие клика правой кнопкой мыши, координаты клика
