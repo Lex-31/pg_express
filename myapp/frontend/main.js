@@ -2,6 +2,67 @@ import { DataManager } from './dataManager.js';
 import { EventManager } from './eventManager.js';
 import { serverUrl } from './config.js';
 
+// Функция для обработки авторизации
+async function handleAuth(event) {
+    event.preventDefault();
+    const username = document.getElementById('auth-username').value;
+    const password = document.getElementById('auth-password').value;
+
+    // Здесь можно добавить логику проверки логина и пароля
+    // Например, отправить запрос на сервер для проверки учетных данных
+    const isAuthenticated = await checkCredentials(username, password);
+
+    if (isAuthenticated) {
+        localStorage.setItem('isAuthenticated', 'true');
+        document.getElementById('auth-btn').textContent = 'Выход';
+        document.getElementById('new-btn').style.display = 'block';
+        document.getElementById('auth-form-container').style.display = 'none';
+        loadData();
+    } else {
+        alert('Неверные учетные данные');
+    }
+}
+
+// Функция для обработки выхода
+function handleLogout() {
+    localStorage.removeItem('isAuthenticated');
+    document.getElementById('auth-btn').textContent = 'Авторизация';
+    document.getElementById('new-btn').style.display = 'none';
+    document.getElementById('auth-form-container').style.display = 'none';
+    location.reload(); // Перезагружаем страницу для сброса состояния
+}
+
+// Функция для проверки учетных данных (заглушка)
+async function checkCredentials(username, password) {
+    // Здесь можно добавить реальную проверку учетных данных
+    // Например, отправить запрос на сервер
+    if (username === 'admin' && password === '123') {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// Проверка состояния авторизации при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    if (isAuthenticated) {
+        document.getElementById('auth-btn').textContent = 'Выход';
+        document.getElementById('new-btn').style.display = 'block';
+    }
+});
+
+document.getElementById('auth-btn').addEventListener('click', () => {
+    const authButton = document.getElementById('auth-btn');
+    if (authButton.textContent === 'Авторизация') {
+        document.getElementById('auth-form-container').style.display = 'block';
+    } else {
+        handleLogout();
+    }
+});
+
+document.getElementById('auth-form').addEventListener('submit', handleAuth);
+
 async function loadData() { //GET запрос загружает данные из сервера и обновляет таблицу
     const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
     const products = await DataManager.fetchProducts();  // Загрузка изделий
@@ -33,7 +94,9 @@ async function loadData() { //GET запрос загружает данные �
                 <td class="okpd-okved-col">${item.prod_okved}</td>
                 <td class="doc-col ${item.prod_dir === '' ? 'fail-dir' : ''}" style="display: none;">${item.docs ? formatDocs(item.docs) : ''}</td >
             `;
-            tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши
+            if (document.getElementById('auth-btn').textContent === 'Выход') {
+                tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши
+            }
             tr.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши
                 if (!event.target.closest('a')) { // на ссылках оставляем дефолное выпадающее меню
                     event.preventDefault(); //на остальном контенте...
