@@ -1,0 +1,38 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+import "../styles/global.css";
+---
+
+<MainLayout title="Главная">
+	<section class="hero">
+		<h1>Компания «Стальэнерго»</h1>
+		<p>Современные системы автоматики и связи</p>
+	</section>
+	<section class="about">
+		<h2>О компании</h2>
+		<p>
+			ООО «Компания «Стальэнерго» — современное промышленное предприятие,
+			разработчик и производитель цифровых коммуникационных платформ и
+			программно-аппаратных комплексов.
+		</p>
+	</section>
+	<section class="catalog">
+		<h2>Каталог продукции</h2>
+		<p>
+			Наши продукты включают оборудование для автоматизации и связи,
+			используемое на железнодорожном транспорте и в других отраслях.
+		</p>
+	</section>
+</MainLayout>
+
+<style>
+	.hero {
+		text-align: center;
+		padding: 2rem;
+		background-color: #f8f9fa;
+	}
+	.about,
+	.catalog {
+		padding: 2rem;
+	}
+</style>
