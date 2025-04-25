@@ -11,6 +11,4 @@ export class CategoryModel {
 
         } finally { client.release(); }
     }
-
-
 }

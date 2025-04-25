@@ -1,17 +1,3 @@
-@media print {
-    @page {
-        size: A4;
-        margin: 1cm 1cm 1cm 2cm;
-    }
-
-    #new-btn,
-    #toggle-doc-btn,
-    #auth-btn {
-        display: none;
-    }
-
-}
-
 body,
 input,
 button {
@@ -62,6 +48,7 @@ p {
 
 /* Стили для кнопки "New" */
 #new-btn {
+    display: block;
     position: fixed;
     /* Фиксируем положение кнопки */
     bottom: 20px;
@@ -368,4 +355,18 @@ ul {
     bottom: 0px;
     height: 2px;
     background: red;
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 1cm 1cm 1cm 2cm;
+    }
+
+    #new-btn,
+    #toggle-doc-btn,
+    #auth-btn {
+        display: none;
+    }
+
 }

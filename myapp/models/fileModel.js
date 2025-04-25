@@ -16,7 +16,7 @@ export class FileModel {
             return fileUrl; // Возвращаем URL для доступа к статическому файлу
 
         } else {
-            throw new Error('File not found');
+            throw new Error(`Файл не найден на ${host}`);
         }
     }
 

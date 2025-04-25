@@ -83,4 +83,5 @@ server {
 
     include /etc/nginx/includes/myapp.inc;
     include /etc/nginx/includes/pgadmin.inc;
+    include /etc/nginx/includes/portal.inc;
 }
