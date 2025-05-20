@@ -148,11 +148,32 @@ export class ProductModel {
     static async deleteProduct(id) { // Метод для удаления записи продукта из таблицы
         const client = await pool.connect();
         try {
+            // Получаем данные записи перед удалением
+            const selectQuery = `
+                SELECT 
+                    category_id,
+                    item_number,
+                    prod_name,
+                    prod_mark,
+                    prod_number,
+                    prod_okpd,
+                    prod_okved,
+                    prod_dir
+                FROM ${table_name}
+                WHERE id = $1
+            `;
+            const selectResult = await client.query(selectQuery, [id]);
+            const deletedRow = selectResult.rows[0];
+
+            if (!deletedRow) {
+                throw new Error('Row not found');
+            }
+
             // Удаляем все документы, связанные с изделием
             await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);
             // Удаляем само изделие
             await client.query(`DELETE FROM ${table_name} WHERE id = $1`, [id]);
-            return { msg: 'Row and associated documents deleted successfully', id: id };
+            return { msg: 'Row and associated documents deleted successfully', id: id, deletedRow: deletedRow };
 
         } finally { client.release(); }
     }

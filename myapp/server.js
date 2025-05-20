@@ -3,6 +3,7 @@ import cors from 'cors';
 import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import fileRoutes from './routes/fileRoutes.js';
+import logRoutes from './routes/logRoutes.js';
 import { DbService } from './services/dbService.js';
 
 const app = express();
@@ -16,11 +17,14 @@ app.use('/data/folder1', express.static('/data/folder1')); // Укажите д�
 app.use(productRoutes);  // подключение маршрутов для продуктов
 app.use(categoryRoutes);  // подключение маршрутов для категорий
 app.use(fileRoutes);  // подключение маршрутов для файлов и директорий
+app.use(logRoutes);  // подключение маршрутов для логирования
 
 const PORT = 3000;
 
 // выводит информацию о том, что произошло неперехваченное отклонение промиса, а также причину отклонения и сам промис
-process.on('unhandledRejection', (reason, promise) => { console.error('Unhandled Rejection at:', promise, 'reason:', reason); });  // срабатывает при возникновении необработанного отклонения промиса
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});  // срабатывает при возникновении необработанного отклонения промиса
 
 
 DbService.checkTablesStructure().then(isStructureValid => { //проверка структуры таблицы БД перед запуском сервера

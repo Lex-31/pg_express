@@ -14,6 +14,7 @@ async function handleAuth(event) {
 
     if (isAuthenticated) {
         localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('username', username); // Сохраняем имя пользователя
         document.getElementById('auth-btn').textContent = 'Выход';
         document.getElementById('new-btn').style.display = 'block';
         document.getElementById('auth-form-container').style.display = 'none';
@@ -236,14 +237,21 @@ async function updateRow(id) { //Отправляет PUT запрос на се
         prod_dir: document.getElementById('new-prod_dir').value
     };
 
-    await DataManager.updateProduct(id, data); // Отправляем PUT запрос на сервер для обновления записи
+    // Извлечение имени пользователя
+    const username = localStorage.getItem('username') || 'anonymous';
+
+    await DataManager.updateProduct(id, data, username); // Отправляем PUT запрос на сервер для обновления записи
     document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
     loadData();
 }
 
 //удаление позиции по id
 async function deleteRow(id) {
-    await DataManager.deleteProduct(id); // Отправляем DELETE запрос на сервер для удаления записи
+
+    // Извлечение имени пользователя
+    const username = localStorage.getItem('username') || 'anonymous';
+
+    await DataManager.deleteProduct(id, username); // Отправляем DELETE запрос на сервер для удаления записи
     document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
     loadData();
 }
@@ -269,7 +277,10 @@ export async function createRow() { //Отправляет POST запрос н�
         prod_dir: document.getElementById('new-prod_dir').value
     };
 
-    await DataManager.createProduct(data); // POST запрос на создание изделия
+    // Извлечение имени пользователя
+    const username = localStorage.getItem('username') || 'anonymous';
+
+    await DataManager.createProduct(data, username); // POST запрос на создание изделия
     document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
     loadData();
 }

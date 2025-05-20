@@ -29,27 +29,36 @@ export class DataManager {
         return this.fetchData(`http://${serverUrl}/api/main/${id}`);
     }
 
-    static async updateProduct(id, data) {  // PUT запрос на обновление изделия
+    static async updateProduct(id, data, username) {  // PUT запрос на обновление изделия
         const response = await fetch(`http://${serverUrl}/api/main/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Username': username // Передача имени пользователя в заголовке
+            },
             body: JSON.stringify(data)
         });
         return response.json();
     }
 
-    static async createProduct(data) {  // POST запрос на создание изделия
+    static async createProduct(data, username) {  // POST запрос на создание изделия
         const response = await fetch(`http://${serverUrl}/api/main`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Username': username // Передача имени пользователя в заголовке
+            },
             body: JSON.stringify(data)
         });
         return response.json();
     }
 
-    static async deleteProduct(id) {  // DELETE запрос на удаление изделия
+    static async deleteProduct(id, username) {  // DELETE запрос на удаление изделия
         const response = await fetch(`http://${serverUrl}/api/main/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'X-Username': username // Передача имени пользователя в заголовке
+            },
         });
         return response.json();
     }
