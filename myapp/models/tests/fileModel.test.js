@@ -5,7 +5,7 @@ import http from 'http';
 
 
 describe('getFile', () => {
-    it('Проверка преобразования пути к файлу из "\\\\fs3\\Технический архив\\test_file.txt" в "http://localhost:3000/data/folder1/test_file.txt"', async () => {
+    it('Проверка преобразования пути к файлу из "fs3/Технический архив/test_file.txt" в "http://localhost:3000/data/folder1/test_file.txt"', async () => {
         const filePath = '\\\\fs3\\Технический архив\\test_file.txt';
         const host = '172.22.1.106';  //IP сервера
         const expectedUrl = `http://${host}/data/folder1/test_file.txt`;
@@ -21,7 +21,7 @@ describe('getFile', () => {
         fs.unlinkSync(newPath);  // Удаляем файл после теста
     });
 
-    it('Проверка преобразования пути к несуществующему файлу из "\\\\fs3\\Технический архив\\non_existent_file.txt', async () => {
+    it('Проверка преобразования пути к несуществующему файлу из "fs3/Технический архив/non_existent_file.txt', async () => {
         const filePath = '\\\\fs3\\Технический архив\\non_existent_file.txt';
         const host = '172.22.1.106';  //IP сервера
 
@@ -30,33 +30,34 @@ describe('getFile', () => {
 });
 
 describe('getDirectoryContent', () => {
-    it('should return the correct directory content', async () => {
+    it('Проверка возврата правильного содержимого (тестовый файл и тестовая директория) директории fs3/Технический архив/test_dir/... (/data/folder1/test_dir/...)', async () => {
         const dirPath = '\\\\fs3\\Технический архив\\test_dir';
         const newPath = dirPath.replace(/\\\\fs3\\Технический архив\\/, '/data/folder1/').replace(/\\/g, '/');
 
         // Убедитесь, что директория существует
-        if (!fs.existsSync(newPath)) {
-            fs.mkdirSync(newPath);
-            fs.writeFileSync(path.join(newPath, 'test_file1.txt'), '');
-            fs.writeFileSync(path.join(newPath, 'test_file2.txt'), '');
+        if (!fs.existsSync(newPath)) {  //если директория не существует, то создаем ее
+            fs.mkdirSync(newPath);  // создаем директорию /data/folder1/test_dir/
+            fs.writeFileSync(path.join(newPath, 'test_file1.txt'), '');  // создаем в этой директории файл
+            fs.mkdirSync(path.join(newPath, 'test_dir2'));  // создаем в этой директории директорию test_dir2
         }
 
-        const directoryContent = await FileModel.getDirectoryContent(dirPath);
-        const expectedContent = [
+        const directoryContent = await FileModel.getDirectoryContent(dirPath);  //получаем содержимое директории /data/folder1/test_dir/
+        const expectedContent = [  // ожидаемое содержимое директории /data/folder1/test_dir/
             { name: 'test_file1.txt', isDirectory: false },
-            { name: 'test_file2.txt', isDirectory: false }
+            { name: 'test_dir2', isDirectory: true }
         ];
 
-        expect(directoryContent).toEqual(expect.arrayContaining(expectedContent));
+        expect(directoryContent).toEqual(expect.arrayContaining(expectedContent)); //проверяем, что массив directoryContent содержит все элементы из expectedContent.
+        //expect.arrayContaining(expectedContent) позволяет элементам массивов находится в разном порядке, позволяет массиву directoryContent содержать дополнительные элементы, которые не указаны в expectedContent
 
-        // Удаляем директорию после теста
+        // Удаляем директорию /data/folder1/test_dir/ с вложениями после теста
         fs.rmSync(newPath, { recursive: true, force: true });
     });
 
-    it('should throw an error if the directory does not exist', async () => {
-        const dirPath = '\\\\fs3\\Технический архив\\non_existent_dir';
+    it('Проверка выдачи ошибки (Directory not found), если директория не существует', async () => {
+        const dirPath = '\\\\fs3\\Технический архив\\non_existent_dir';  //несуществуюбщая директория
 
-        await expect(FileModel.getDirectoryContent(dirPath)).rejects.toThrow('Directory not found');
+        await expect(FileModel.getDirectoryContent(dirPath)).rejects.toThrow('Directory not found'); // заставляем FileModel.getDirectoryContent выбросить ошибку с текстом 'Directory not found'
     });
 });
 /*

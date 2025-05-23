@@ -1,0 +1,31 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+import "../styles/global.css";
+---
+
+<MainLayout title="Документация">
+	<section class="docs-content">
+		<h1>Контакты</h1>
+		<p>
+			Здесь вы найдете всю необходимые контакты в компании.
+		</p>
+
+	</section>
+</MainLayout>
+
+<style>
+	.docs-content {
+		padding: 2rem;
+	}
+	.file-links ul {
+		list-style: none;
+		padding: 0;
+	}
+	.file-links li {
+		margin-bottom: 1rem;
+	}
+	.file-links a {
+		color: #007bff;
+		text-decoration: none;
+	}
+</style>

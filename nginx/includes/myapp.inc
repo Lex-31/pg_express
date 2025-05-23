@@ -15,7 +15,7 @@ location /data/folder1 {
 }
 
 # Основной алиас для статического приложения, исключая pgadmin4 и api
-location / {
+location /prod/ {
     alias /var/www/myapp/;
     try_files $uri $uri/ =404;
 }
