@@ -7,7 +7,7 @@ location / {
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 
-# Обслуживание статических файлов
+# Обслуживание статических файлов документации
 location /documents/ {
     alias /var/www/portal/public/documents/;
     autoindex on;

@@ -82,6 +82,10 @@ server {
     server_name 172.22.1.106;
 
     include /etc/nginx/includes/myapp.inc;
-    include /etc/nginx/includes/pgadmin.inc;
     include /etc/nginx/includes/portal.inc;
+    include /etc/nginx/includes/pgadmin.inc;
+
+	# Логирование
+    error_log /var/log/nginx/error.log;
+    access_log /var/log/nginx/access.log;
 }

@@ -38,6 +38,26 @@ export class DbService {
                 doc_link TEXT
             );
             `);
+            await client.query(`
+            CREATE TABLE IF NOT EXISTS ${table_name}_zp (
+                id SERIAL PRIMARY KEY NOT NULL,
+                zp_name VARCHAR(100)
+            );
+            `);
+            /*await client.query(`
+            CREATE TABLE IF NOT EXISTS ${table_name}_notes_zp (
+                id SERIAL PRIMARY KEY NOT NULL,
+                zp_id INT, --номер альбома в архиве ОГП
+                name_note VARCHAR(100), --наименование узла, обозначение
+                note TEXT, --содержание предложения
+                owner_note VARCHAR(100), --ФИО автора
+                owner_date DATE, --дата создания предложения
+                response TEXT, --содержание ответа
+                response_note VARCHAR(100), --ФИО отвечающего на предложение
+                response_date DATE --дата ответа
+            );
+            `);*/
+
             const result = await client.query(`SELECT * FROM ${table_name}`);
             if (result.rowCount === 0) {
                 await client.query(`
@@ -211,6 +231,16 @@ export class DbService {
                     ('91', 'ТП', 'https://new.stalenergo.ru/wp-content/uploads/2020/11/tipovye-materialy-dlya-proektirovaniya-1.pdf');
                 `);
             }
+
+            const result2 = await client.query(`SELECT * FROM ${table_name}_zp;`);
+            if (result2.rowCount === 0) {
+                await client.query(`
+                INSERT INTO ${table_name}_zp (id, zp_name) VALUES
+                    ('18', 'ЗФ 220'),
+                    ('82', 'УТ 200 УТ 600');
+                `);
+            }
+
         } finally { client.release(); }
     }
 
@@ -248,6 +278,13 @@ export class DbService {
                         { name: 'prod_id', type: 'integer', nullable: true },
                         { name: 'doc_name', type: 'character varying', nullable: true },
                         { name: 'doc_link', type: 'text', nullable: true }
+                    ]
+                },
+                {
+                    name: `${table_name}_zp`,
+                    columns: [
+                        { name: 'id', type: 'integer', nullable: false },
+                        { name: 'zp_name', type: 'character varying', nullable: true }
                     ]
                 }
             ];

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/style2.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js" defer></script>
+    <script src="/frontend/main2.js" type="module" defer></script>
+    <title>Журналы предложений (ЖП) компании Стальэнерго</title>
+</head>
+
+<body>
+    <!-- форма авторизации -->
+    <div class="auth-container">
+        <button id="auth-btn">Авторизация</button>
+        <div id="auth-form-container" style="display: none;">
+            <form id="auth-form">
+                <label>
+                    Логин: <input type="text" id="auth-username" required>
+                </label>
+                <label>
+                    Пароль: <input type="text" id="auth-password" required>
+                </label>
+                <button type="submit">Войти</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- контейнер кнопопок управления -->
+    <div class="a4-container">
+        <button id="new-btn">Добавить новое</button>
+
+        <!-- Таблица с заголовком и колонками -->
+        <table class="table">
+            <thead>
+                <tr>
+                    <th colspan="2">Журналы предложений</th>
+                </tr>
+                <tr>
+                    <th>№ альбома в архиве ОГТ</th>
+                    <th>Наименование журнала</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Динамически добавляемые записи из БД -->
+            </tbody>
+        </table>
+    </div>
+    <!-- Фон для модального окна -->
+    <div class="modal-backdrop"></div>
+    <!-- Форма для создания новой записи -->
+    <div id="new-form-container">
+        <form id="new-form">
+            <label>№ альбома в архиве ОГТ: <input type="number" id="new-id" required> </label>
+            <label>Наименование журнала: <input type="text" id="new-zp_name" required> </label>
+            <div class="buttons">
+                <button type="button" id="form-submit-btn">Создать</button>
+                <button type="button" id="form-close-btn">Отмена</button>
+                <button type="button" id="form-delete-btn">Удалить</button>
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>

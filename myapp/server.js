@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import fileRoutes from './routes/fileRoutes.js';
@@ -14,6 +15,17 @@ app.use((req, res, next) => { // Отладочный middleware для логи
     next();
 });
 app.use('/data/folder1', express.static('/data/folder1')); // Укажите директорию, где находятся ваши PDF-файлы
+
+// Маршрут для первой страницы
+app.get('/app/prod', (req, res) => {
+    res.sendFile(path.resolve(process.cwd(), 'index.html'));
+});
+
+// Маршрут для второй страницы
+app.get('/app/zp', (req, res) => {
+    res.sendFile(path.resolve(process.cwd(), 'index2.html'));
+});
+
 app.use(productRoutes);  // подключение маршрутов для продуктов
 app.use(categoryRoutes);  // подключение маршрутов для категорий
 app.use(fileRoutes);  // подключение маршрутов для файлов и директорий

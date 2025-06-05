@@ -48,7 +48,7 @@ p {
 
 /* Стили для кнопки "New" */
 #new-btn {
-    display: block;
+    display: none;
     position: fixed;
     /* Фиксируем положение кнопки */
     bottom: 20px;
@@ -366,7 +366,7 @@ ul {
     #new-btn,
     #toggle-doc-btn,
     #auth-btn {
-        display: none;
+        display: none !important;
     }
 
 }

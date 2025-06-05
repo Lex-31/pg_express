@@ -5,8 +5,10 @@ const logger = new Logger();
 
 /** Класс для обработки запросов, связанных с продуктами.
  * @method getAllProducts - Получение всех продуктов.
+ * @method getAllZp - Получение всех ЖП.
  * @method getProductById - Получение продукта по ID.
  * @method createProduct - Создание нового продукта.
+ * @method createZp - Создание нового ЖП.
  * @method updateProduct - Обновление существующего продукта.
  * @method deleteProduct - Удаление продукта. */
 export class ProductController {
@@ -14,6 +16,16 @@ export class ProductController {
         try {
             const products = await ProductModel.getAllProducts();
             res.json(products);
+        } catch (error) {
+            console.error('Error executing query', error.stack);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    static async getAllZp(req, res) {  //получение всех записей из таблицы ЖП
+        try {
+            const zp = await ProductModel.getAllZp();
+            res.json(zp);
         } catch (error) {
             console.error('Error executing query', error.stack);
             res.status(500).send('Internal Server Error');
@@ -43,6 +55,23 @@ export class ProductController {
 
             // Логирование созданной записи
             logger.logAction(username, 'CREATE', result.id, productData);
+
+            res.status(201).json(result);
+        } catch (error) {
+            console.error('Error executing query', error.stack);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    static async createZp(req, res) {  //добавление нового ЖП
+        const zpData = req.body;
+        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+
+        try {
+            const result = await ProductModel.createZp(zpData);
+
+            // Логирование созданной записи
+            logger.logAction(username, 'CREATE', result.id, zpData);
 
             res.status(201).json(result);
         } catch (error) {

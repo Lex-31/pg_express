@@ -2,8 +2,10 @@ import { pool, table_name } from '../config/dbConfig.js';
 
 /** Класс для SQL-запросов к таблицам продуктов в базе данных
  * @method getAllProducts - метод для получения всех продуктов из базы данных
+ * @method getAllZp - метод для получения всех ЖП
  * @method getProductById - метод для получения продукта по id
  * @method createProduct - метод для создания нового продукта
+ * @method createZp - метод для создания нового ЖП
  * @method updateProduct - метод для обновления продукта
  * @method deleteProduct - метод для удаления продукта */
 export class ProductModel {
@@ -41,6 +43,23 @@ export class ProductModel {
                 item.docs = docsResult.rows;
             }
             return items;
+
+        } finally { client.release(); }
+    }
+
+    static async getAllZp() {  //метод для получения всех ЖП
+        const client = await pool.connect();
+        try {
+            const zp = await client.query(`
+                SELECT
+                    zp.id,
+                    zp.zp_name
+                FROM
+                    ${table_name}_zp zp
+                ORDER BY
+                    zp.id  -- сортировка по номеру ЖП
+            `);
+            return zp.rows;
 
         } finally { client.release(); }
     }
@@ -104,6 +123,28 @@ export class ProductModel {
                 await client.query(insertDocsQuery, docValues); //вставить код SQL в функцию
             }
             return { msg: 'Row inserted successfully', id: prodId }; //успешное добавление, возвращается id новой записи
+
+        } catch (err) {
+            console.error('Error executing query', err.stack);
+            res.status(500).send('Internal Server Error');
+        } finally { client.release(); }
+    }
+
+    static async createZp(zpData) {  // метод для создания нового ЖП
+        const client = await pool.connect();
+        try {
+            const result = await client.query(`
+                INSERT INTO
+                    ${table_name}_zp (id, zp_name)
+                VALUES
+                    ($1, $2)
+                RETURNING  -- возвращает id новой записи из table_name_zp
+                    id
+            `, [zpData.id, zpData.zp_name]);
+
+            const zpId = result.rows[0].id;
+
+            return { msg: 'Row inserted successfully', id: zpId }; //успешное добавление, возвращается id новой записи
 
         } catch (err) {
             console.error('Error executing query', err.stack);
