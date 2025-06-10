@@ -4,8 +4,10 @@ import { pool, table_name } from '../config/dbConfig.js';
  * @method getAllProducts - метод для получения всех продуктов из базы данных
  * @method getAllZp - метод для получения всех ЖП
  * @method getProductById - метод для получения продукта по id
+ * @method getNotesZp - метод для получения всех записей в ЖП по id
  * @method createProduct - метод для создания нового продукта
  * @method createZp - метод для создания нового ЖП
+ * @method createNoteZp - метод для создания новой записи в ЖП
  * @method updateProduct - метод для обновления продукта
  * @method deleteProduct - метод для удаления продукта */
 export class ProductModel {
@@ -100,6 +102,43 @@ export class ProductModel {
         } finally { client.release(); }
     }
 
+
+    static async getNotesZp(id) {  // метод для получения всех записей в ЖП по id
+        const client = await pool.connect();
+        try {
+            const notes = await client.query(`
+                SELECT
+                    stalenergo_zp.id,
+                    stalenergo_zp.zp_name,
+                    (
+                        SELECT json_agg(
+                            json_build_object(
+                                'note_zp_id', stalenergo_notes_zp.note_zp_id,
+                                'name_note', stalenergo_notes_zp.name_note,
+                                'note', stalenergo_notes_zp.note,
+                                'owner_note', stalenergo_notes_zp.owner_note,
+                                'owner_date', stalenergo_notes_zp.owner_date,
+                                'response', stalenergo_notes_zp.response,
+                                'response_note', stalenergo_notes_zp.response_note,
+                                'response_date', stalenergo_notes_zp.response_date
+                            )
+                        )
+                        FROM stalenergo_notes_zp
+                        WHERE stalenergo_notes_zp.zp_id = stalenergo_zp.id
+                    )
+                FROM stalenergo_zp
+                WHERE stalenergo_zp.id = $1; -- выбирает запись только с определенным table_name.id
+            `, [id]);
+
+            // if (notes.rowCount === 0) {  // если ЖП с таким id не найден, возвращает 404 ошибку
+            //     return null;
+            // }
+
+            return notes.rows[0];
+
+        } finally { client.release(); }
+    }
+
     static async createProduct(productData) {  // метод для создания новой записи
         const client = await pool.connect();
         try {
@@ -145,6 +184,28 @@ export class ProductModel {
             const zpId = result.rows[0].id;
 
             return { msg: 'Row inserted successfully', id: zpId }; //успешное добавление, возвращается id новой записи
+
+        } catch (err) {
+            console.error('Error executing query', err.stack);
+            res.status(500).send('Internal Server Error');
+        } finally { client.release(); }
+    }
+
+    static async createNoteZp(noteData) {  // метод для создания новой записи в ЖП
+        const client = await pool.connect();
+        try {
+            const result = await client.query(`
+                INSERT INTO
+                    ${table_name}_notes_zp (note_zp_id, zp_id, name_note, note, owner_note, owner_date, response, response_note, response_date)
+                VALUES
+                    ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING  -- возвращает id новой записи из table_name_notes_zp
+                    id
+            `, [noteData.note_zp_id, noteData.zp_id, noteData.name_note, noteData.note, noteData.owner_note, noteData.owner_date, noteData.response, noteData.response_note, noteData.response_date]);
+
+            const noteId = result.rows[0].id;
+
+            return { msg: 'Row inserted successfully', id: noteId }; //успешное добавление, возвращается id новой записи
 
         } catch (err) {
             console.error('Error executing query', err.stack);

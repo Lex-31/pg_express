@@ -40,13 +40,14 @@ export class DbService {
             `);
             await client.query(`
             CREATE TABLE IF NOT EXISTS ${table_name}_zp (
-                id SERIAL PRIMARY KEY NOT NULL,
+                id SERIAL PRIMARY KEY NOT NULL, --номер альбома в архиве ОГП
                 zp_name VARCHAR(100)
             );
             `);
-            /*await client.query(`
+            await client.query(`
             CREATE TABLE IF NOT EXISTS ${table_name}_notes_zp (
                 id SERIAL PRIMARY KEY NOT NULL,
+                note_zp_id INT, --номер предложения в рамках одного ЖП
                 zp_id INT, --номер альбома в архиве ОГП
                 name_note VARCHAR(100), --наименование узла, обозначение
                 note TEXT, --содержание предложения
@@ -56,7 +57,7 @@ export class DbService {
                 response_note VARCHAR(100), --ФИО отвечающего на предложение
                 response_date DATE --дата ответа
             );
-            `);*/
+            `);
 
             const result = await client.query(`SELECT * FROM ${table_name}`);
             if (result.rowCount === 0) {
@@ -239,6 +240,15 @@ export class DbService {
                     ('18', 'ЗФ 220'),
                     ('82', 'УТ 200 УТ 600');
                 `);
+
+                await client.query(`
+                INSERT INTO ${table_name}_notes_zp (note_zp_id, zp_id, name_note, note, owner_note, owner_date, response, response_note, response_date) VALUES
+                    ('1', '18', 'ЕИУС.436600.040.015 Наклейка', 'Файл наклейки не соответсвует графике чертежа', 'Сердюк Л.В.', '2015-08-20', 'Наклейку заказывать по файлу "ЕИУС.436600.040.015 изм. 1ю cdr" КД будет откорректирована установленном порядке', 'Сердюк Л.В.', '2015-08-26'),
+                    ('2', '18', 'ЕИУС.436600.040.015 Наклейка', 'Файл наклейки отсутвует', 'Иванов И.В.', '2025-02-17', 'Наклейку заказывать по файлу "ЕИУС.436600.040.015 изм. 1ю cdr" КД будет откорректирована установленном порядке', 'Клементьев В.А.', '2025-02-20'),
+                    ('3', '18', 'ЕИУС.436600.040.015 Наклейка', 'Файл наклейки изменен', 'Клементьев В.А.', '2025-03-15', 'Наклейку заказывать по файлу "ЕИУС.436600.040.015 изм.2" КД будет откорректирована установленном порядке', 'Клементьев В.А.', '2025-03-15'),
+                    ('1', '82', 'ЕИУС.465333.010 УТ600', 'В целях унификации, предлагаю использовать вместо Экрана ЕИУС. 465333.010.006, Экран ЕИУС.468333.009.006. Экран ЕИУС.468333.009.006 устанавливать по ананалогии в изделии УТ200 ЕИУС.468333.009, с использованием Стойки ЕИУС.716231.002 – 3 шт., Стойки ЕИУС.716231.002-02 – 3 шт. Доработка экрана не требуется, координаты крепежных отверстий совпадают. Экран ЕИУС.468333.009.006 является барьером для платы от двух трансформаторов, а Экран ЕИУС. 465333.010.006 только от одного трансформатора.', 'Банникова О.А.', '2025-05-30', 'Согласовано. В КД будет учтено при коррекции', 'Клементьев В.А.', '2025-05-31'),
+                    ('2', '82', 'ЕИУС.465333.011 УТ200', 'В целях унификации, предлагаю использовать вместо Экрана ЕИУС. 465333.011.006, Экран ЕИУС.468333.009.006. Экран ЕИУС.468333.009.006 устанавливать по ананалогии в изделии УТ200 ЕИУС.468333.009', 'Банникова О.А.', '2025-05-30', 'Согласовано. В КД будет учтено при коррекции', 'Клементьев В.А.', '2025-05-31');
+                `);
             }
 
         } finally { client.release(); }
@@ -285,6 +295,21 @@ export class DbService {
                     columns: [
                         { name: 'id', type: 'integer', nullable: false },
                         { name: 'zp_name', type: 'character varying', nullable: true }
+                    ]
+                },
+                {
+                    name: `${table_name}_notes_zp`,
+                    columns: [
+                        { name: 'id', type: 'integer', nullable: false },
+                        { name: 'note_zp_id', type: 'integer', nullable: true },
+                        { name: 'zp_id', type: 'integer', nullable: true },
+                        { name: 'name_note', type: 'character varying', nullable: true },
+                        { name: 'note', type: 'text', nullable: true },
+                        { name: 'owner_note', type: 'character varying', nullable: true },
+                        { name: 'owner_date', type: 'date', nullable: true },
+                        { name: 'response', type: 'text', nullable: true },
+                        { name: 'response_note', type: 'character varying', nullable: true },
+                        { name: 'response_date', type: 'date', nullable: true }
                     ]
                 }
             ];

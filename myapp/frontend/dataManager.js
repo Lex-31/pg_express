@@ -5,7 +5,7 @@ import { serverUrl } from './config.js';
  * @method fetchCategories - GET запрос на получение категорий
  * @method fetchProducts - GET запрос на получение изделий
  * @method fetchProductById - GET запрос на получение изделия по id
- * @method fetchItemsZp - GET запрос на получение всех журналов предложений
+ * @method fetchItemsZp - GET запрос на получение всех ЖП
  * @method fetchNotesZp - GET запрос на получение записей из одного журнала предложений по id журнала
  * @method updateProduct - PUT запрос на обновление изделия
  * @method updateNoteZp - PUT запрос на обновление записи в ЖП
@@ -79,7 +79,7 @@ export class DataManager {
         return response.json();
     }
 
-    static async createItemZp(data, username) {  // POST запрос на создание нового журнале предложений
+    static async createItemZp(data, username) {  // POST запрос на создание нового ЖП
         const response = await fetch(`http://${serverUrl}/api/zp`, {
             method: 'POST',
             headers: {
@@ -91,7 +91,8 @@ export class DataManager {
         return response.json();
     }
 
-    static async createNoteZp(id, data, username) {  // POST запрос на создание записи в журнале предложений
+    static async createNoteZp(id, data, username) {  // POST запрос на создание записи в ЖП
+        // id - ЖП; data - данные из формы; username - имя пользователя авторизированного
         const response = await fetch(`http://${serverUrl}/api/zp/${id}`, {
             method: 'POST',
             headers: {

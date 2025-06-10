@@ -84,14 +84,9 @@ async function loadData() { //GET запрос загружает данные �
             <td>${itemZp.zp_name}</td>
         `;
 
-        if (document.getElementById('auth-btn').textContent === 'Выход') {
-            itemZpRow.addEventListener('dblclick', () => openEditForm(itemZp.id)); // двойной клик левой кнопкой мыши должны открывать станицу конкретного ЖП
-        }
-
-        itemZpRow.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши
-            event.preventDefault();
-            showContextMenu(event, itemZp); //...открываем кастомное выпадающее меню, event - для позиционирования меню рядом с кликом, itemZp - объект с данными о кликнутом изделии
-
+        itemZpRow.addEventListener('dblclick', () => { //вешаем собтие dblclick на строку таблицы
+            // window.location.href = `/app/zp/${itemZp.id}`;
+            window.open(`/app/zp/${itemZp.id}`, '_blank');   // Используем window.open для открытия ссылки на ЖП в новой вкладке
         });
 
         tableBody.append(itemZpRow); //вставляем в строку таблицы ячейки

@@ -7,8 +7,10 @@ const logger = new Logger();
  * @method getAllProducts - Получение всех продуктов.
  * @method getAllZp - Получение всех ЖП.
  * @method getProductById - Получение продукта по ID.
+ * @method getNotesZp - Получение записей в ЖП по ID.
  * @method createProduct - Создание нового продукта.
  * @method createZp - Создание нового ЖП.
+ * @method createNoteZp - Создание новой записи в ЖП.
  * @method updateProduct - Обновление существующего продукта.
  * @method deleteProduct - Удаление продукта. */
 export class ProductController {
@@ -46,6 +48,20 @@ export class ProductController {
         }
     }
 
+    static async getNotesZp(req, res) {  //получение всех записей в ЖП по id
+        const { id } = req.params;
+        try {
+            const zpNotes = await ProductModel.getNotesZp(id);
+            if (!zpNotes) {
+                return res.status(404).send('Product not found');
+            }
+            res.json(zpNotes);
+        } catch (error) {
+            console.error('Error executing query', error.stack);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
     static async createProduct(req, res) {  //добавление новой записи
         const productData = req.body;
         const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
@@ -70,8 +86,26 @@ export class ProductController {
         try {
             const result = await ProductModel.createZp(zpData);
 
-            // Логирование созданной записи
-            logger.logAction(username, 'CREATE', result.id, zpData);
+            logger.logAction(username, 'CREATE', result.id, zpData); // Логирование созданной записи
+
+            res.status(201).json(result);
+        } catch (error) {
+            console.error('Error executing query', error.stack);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    static async createNoteZp(req, res) {  //добавление новой записи в ЖП
+        const noteData = req.body;
+        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+
+        console.log(`noteData: ${JSON.stringify(noteData)}`);
+
+        try {
+            const result = await ProductModel.createNoteZp(noteData); //возвращает { msg: 'Row inserted successfully', id: noteId } где id - id новой записи в ЖП
+            console.log(`result: ${JSON.stringify(result)}`);
+
+            logger.logAction(username, 'CREATE', result.id, noteData); // Логирование созданной записи
 
             res.status(201).json(result);
         } catch (error) {

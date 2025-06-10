@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { fileURLToPath } from 'url';
 import path from 'path';
 import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
@@ -8,6 +9,10 @@ import logRoutes from './routes/logRoutes.js';
 import { DbService } from './services/dbService.js';
 
 const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename); //получаем текущую директорию
+
 app.use(cors());
 app.use(express.json()); // middleware для обработки JSON автоматически парсит входящие запросы с заголовком Content-Type: application/json и добавляет данные в req.body
 app.use((req, res, next) => { // Отладочный middleware для логирования запрашиваемых путей
@@ -16,14 +21,19 @@ app.use((req, res, next) => { // Отладочный middleware для логи
 });
 app.use('/data/folder1', express.static('/data/folder1')); // Укажите директорию, где находятся ваши PDF-файлы
 
-// Маршрут для первой страницы
+// Маршрут для продукции
 app.get('/app/prod', (req, res) => {
     res.sendFile(path.resolve(process.cwd(), 'index.html'));
 });
 
-// Маршрут для второй страницы
+// Маршрут для списка ЖП
 app.get('/app/zp', (req, res) => {
     res.sendFile(path.resolve(process.cwd(), 'index2.html'));
+});
+
+//Маршрут для конкретного ЖП
+app.get('/app/zp/:id', (req, res) => {
+    res.sendFile(path.resolve(__dirname, 'index3.html'));
 });
 
 app.use(productRoutes);  // подключение маршрутов для продуктов
