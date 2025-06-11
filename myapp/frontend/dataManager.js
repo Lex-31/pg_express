@@ -6,8 +6,9 @@ import { serverUrl } from './config.js';
  * @method fetchProducts - GET запрос на получение изделий
  * @method fetchProductById - GET запрос на получение изделия по id
  * @method fetchItemsZp - GET запрос на получение всех ЖП
- * @method fetchNotesZp - GET запрос на получение записей из одного журнала предложений по id журнала
+ * @method fetchNotesZp - GET запрос на получение записей из одного ЖП по id ЖП
  * @method updateProduct - PUT запрос на обновление изделия
+ * @method updateZp - PUT запрос на обновление ЖП
  * @method updateNoteZp - PUT запрос на обновление записи в ЖП
  * @method createProduct - POST запрос на создание изделия
  * @method createItemZp - POST запрос на создание нового ЖП
@@ -55,8 +56,21 @@ export class DataManager {
         return response.json();
     }
 
-    static async updateNoteZp(id, data, username) {  // PUT запрос на обновление записи в журнале предложений
+
+    static async updateZp(id, data, username) {  // PUT запрос на обновление ЖП
         const response = await fetch(`http://${serverUrl}/api/zp/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Username': username // Передача имени пользователя в заголовке
+            },
+            body: JSON.stringify(data)
+        });
+        return response.json();
+    }
+
+    static async updateNoteZp(noteId, data, username) {  // PUT запрос на обновление записи в ЖП
+        const response = await fetch(`http://${serverUrl}/api/noteZp/${noteId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

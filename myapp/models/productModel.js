@@ -247,6 +247,34 @@ export class ProductModel {
         } finally { client.release(); }
     }
 
+    static async updateZp(id, zpData) { // Метод для обновления записи продукта в таблице
+        const client = await pool.connect();
+        try {
+            await client.query(`
+                UPDATE
+                    ${table_name}_zp
+                SET  -- набор данных подлежащих обновлению
+                    id = $1, -- старый id
+                    zp_name = $2
+                WHERE  -- обновление применяется только к 1 записи параметров изделия
+                    id = $3
+            `, [zpData.id, zpData.zp_name, id]);
+
+            await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);  //удаляет всю документацию одного изделия. ***нужно сделать чтобы избирательно удалял
+
+            if (productData.docs && productData.docs.length > 0) {
+                const insertDocsQuery = `
+                    INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
+                    VALUES ${productData.docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
+                `;
+                const docValues = [id, ...productData.docs.flat()];
+                await client.query(insertDocsQuery, docValues);
+            }
+            return { msg: 'Row updated successfully', id: id };
+
+        } finally { client.release(); }
+    }
+
     static async deleteProduct(id) { // Метод для удаления записи продукта из таблицы
         const client = await pool.connect();
         try {

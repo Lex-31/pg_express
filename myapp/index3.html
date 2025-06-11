@@ -82,9 +82,6 @@
     <!-- Форма для создания новой записи -->
     <div id="new-form-container">
         <form id="new-form">
-            <!-- <label>№ альбома в архиве ОГТ: <input type="number" id="new-id" required> </label>
-            <label>Наименование журнала: <input type="text" id="new-zp_name" required> </label> -->
-
             <label>№ п/п: <input type="number" id="new-note_zp_id" required></label>
             <label>Наименование узла (детали), обозначение: <input type="text" id="new-name_note" required></label>
             <label>Содержание замечания (предложения): <input type="text" id="new-note" required></label>
@@ -100,6 +97,19 @@
                 <button type="button" id="form-submit-btn">Создать</button>
                 <button type="button" id="form-close-btn">Отмена</button>
                 <button type="button" id="form-delete-btn">Удалить</button>
+            </div>
+        </form>
+    </div>
+    <!-- Форма редактирования ЖП -->
+    <div id="edit-zp-container">
+        <form id="edit-zp">
+            <label>№ альбома в архиве ОГТ: <input type="number" id="new-id" required> </label>
+            <label>Наименование журнала: <input type="text" id="new-zp_name" required> </label>
+
+            <div class="buttons">
+                <button type="button" id="zp-submit-btn">Обновить</button>
+                <button type="button" id="zp-close-btn">Отмена</button>
+                <button type="button" id="zp-delete-btn">Удалить</button>
             </div>
         </form>
     </div>

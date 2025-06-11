@@ -12,6 +12,7 @@ const logger = new Logger();
  * @method createZp - Создание нового ЖП.
  * @method createNoteZp - Создание новой записи в ЖП.
  * @method updateProduct - Обновление существующего продукта.
+ * @method updateZp - Обновление существующего ЖП.
  * @method deleteProduct - Удаление продукта. */
 export class ProductController {
     static async getAllProducts(req, res) {  //получение всех записей из таблицы
@@ -119,11 +120,25 @@ export class ProductController {
         const productData = req.body;
         const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
 
-        // Логирование обновленной записи
-        logger.logAction(username, 'UPDATE', id, productData);
+        logger.logAction(username, 'UPDATE', id, productData);   // Логирование обновленной записи
 
         try {
             const result = await ProductModel.updateProduct(id, productData);
+            res.json(result);
+        } catch (error) {
+            console.error('Error executing query', error.stack);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+    static async updateZp(req, res) {  //изменение ЖП по id
+        const { id } = req.params;
+        const zpData = req.body;
+        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+
+        logger.logAction(username, 'UPDATE', id, zpData);  // Логирование обновленной записи
+
+        try {
+            const result = await ProductModel.updateZp(id, zpData);
             res.json(result);
         } catch (error) {
             console.error('Error executing query', error.stack);

@@ -42,6 +42,7 @@ async function handleAuth(event) {
 // Функция для обработки выхода
 function handleLogout() {
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('username');
     document.getElementById('auth-btn').textContent = 'Авторизация';
     document.getElementById('new-btn').style.display = 'none';
     document.getElementById('auth-form-container').style.display = 'none';
@@ -89,7 +90,7 @@ document.getElementById('auth-form').addEventListener('submit', handleAuth);
 async function loadNotesData(id) {
     try {
         const notes = await DataManager.fetchNotesZp(id);
-        console.log(`data notes: ${JSON.stringify(notes)}`);
+        // console.log(`data notes: ${JSON.stringify(notes)}`);
         /*
 data notes: {"id":18,"zp_name":"ЗФ 220","json_agg":[{"note_zp_id":1,"name_note":"ЕИУС.436600.040.015 Наклейка","note":"Файл наклейки не соответсвует графике чертежа","owner_note":"Сердюк Л.В.","owner_date":"2015-08-20","response":"Наклейку заказывать по файлу \"ЕИУС.436600.040.015 изм. 1ю cdr\" КД будет откорректирована установленном порядке","response_note":"Сердюк Л.В.","response_date":"2015-08-26"},{"note_zp_id":2,"name_note":"ЕИУС.436600.040.015 Наклейка","note":"Файл наклейки отсутвует","owner_note":"Иванов И.В.","owner_date":"2025-02-17","response":"Наклейку заказывать по файлу \"ЕИУС.436600.040.015 изм. 1ю cdr\" КД будет откорректирована установленном порядке","response_note":"Клементьев В.А.","response_date":"2025-02-20"},{"note_zp_id":3,"name_note":"ЕИУС.436600.040.015 Наклейка","note":"Файл наклейки изменен","owner_note":"Клементьев В.А.","owner_date":"2025-03-15","response":"Наклейку заказывать по файлу \"ЕИУС.436600.040.015 изм.2\" КД будет откорректирована установленном порядке","response_note":"Клементьев В.А.","response_date":"2025-03-15"}]}
         */
@@ -98,13 +99,16 @@ data notes: {"id":18,"zp_name":"ЗФ 220","json_agg":[{"note_zp_id":1,"name_note
             return;
         }
 
+
+
         document.title = `Журнал предложений № ${notes.id || 'Неизвестный ID'} - ${notes.zp_name || 'Неизвестное название'}`; //установка заголовка страницы
 
-        const zpNameElement = document.getElementById('zp_name');
-        const zpIdElement = document.getElementById('zp_id');
+        const zpIdHeader = notes.id || 'Неизвестный №';
+        const zpNameHeader = notes.zp_name || 'Неизвестное название';
 
-        zpNameElement.textContent = notes.zp_name || 'Неизвестное название';
-        zpIdElement.textContent = notes.id || 'Неизвестный ID';
+        document.getElementById('zp_id').textContent = zpIdHeader;
+        document.getElementById('zp_name').textContent = zpNameHeader;
+
 
         const tableBody = document.getElementById('table-body');
         tableBody.innerHTML = '';
@@ -120,14 +124,72 @@ data notes: {"id":18,"zp_name":"ЗФ 220","json_agg":[{"note_zp_id":1,"name_note
             <td>${note.response || ''}</td>
             <td>${note.response_note || ''}<br>${note.response_date || ''}</td>
         `;
+
+            //навешивание события двойного клика для редактирования строки записи в ЖП
+            if (localStorage.getItem('username') === 'admin') { //security если пользователь - admin
+                noteRow.addEventListener('dblclick', () => { // двойной клик левой кнопкой мыши
+                    // openEditForm(item.id);
+                    console.log('Клик по строке записи в ЖП', note);
+                    /*
+                    {note_zp_id: 2, name_note: 'ЕИУС.436600.040.015 Наклейка', note: 'Файл наклейки отсутвует', owner_note: 'Иванов И.В.', owner_date: '2025-02-17', …}
+                    */
+                });
+
+            }
+
             tableBody.append(noteRow);
         });
-    } catch (error) {
-        console.error('Ошибка при загрузке данных:', error);
-    }
+
+        //Навешивание события двойного клика для редактирования ЖП
+        if (document.getElementById('auth-btn').textContent === 'Выход') {  //если пользователь авторизован
+            const firstRow = document.querySelector('.table thead tr:first-child'); //получаем первую строку заголовка
+            const secondRow = document.querySelector('.table thead tr:nth-child(2)'); //получаем вторую строку заголовка
+
+            function handleDoubleClick() { // Функция, которая будет выполняться при двойном клике
+                // tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши по второй строке заголовка таблицы tr - открытие формы редактирования ЖП
+                console.log('Двойной клик на заголовке таблицы', notes.id, notes.zp_name);
+                openEditZpForm(notes.id, notes.zp_name); //открытие формы редактирования ЖП
+            }
+            firstRow.addEventListener('dblclick', handleDoubleClick); // двойной клик левой кнопкой мыши по первой строке заголовка
+            secondRow.addEventListener('dblclick', handleDoubleClick); // двойной клик левой кнопкой мыши по второй строке заголовка
+        }
+
+    } catch (error) { console.error('Ошибка при загрузке данных:', error); }
 }
 
-async function updateNote(id) {
+function openEditZpForm(id, zp_name) { //открытие формы редактирования ЖП
+    document.getElementById('new-id').value = id; //заполняем поля формы данными текущего ЖП
+    document.getElementById('new-zp_name').value = zp_name;
+
+    document.getElementById('form-submit-btn').onclick = () => { updateZp(id); }; //
+    document.getElementById('form-delete-btn').onclick = () => { deleteZp(id); };
+    document.getElementById('edit-zp-container').style.display = 'block';
+    document.querySelector('.modal-backdrop').style.display = 'block';
+}
+
+//Кнопка закрытие формы редактирования ЖП
+document.getElementById('zp-close-btn').addEventListener('click', () => {
+    document.getElementById('edit-zp-container').style.display = 'none';
+    document.querySelector('.modal-backdrop').style.display = 'none';
+    document.getElementById('edit-zp').reset();  //сброс полей формы
+    // document.getElementById('zp-submit-btn').onclick = updateZp;
+    // document.getElementById('zp-delete-btn').onclick = deleteZp;
+});
+
+async function updateZp(id) { //обновление данных ЖП (id и zp_name) в таблице ЖП stalenergo_zp
+    const username = localStorage.getItem('username') || 'anonymous'; // Извлечение имени пользователя
+
+    const data = {
+        id: document.getElementById('new-id').value,  //получаем новое значение id из формы
+        zp_name: document.getElementById('new-zp_name').value //получаем новое значение zp_name из формы
+    };
+
+    await DataManager.updateZp(id, data, username); // Отправляем PUT запрос на сервер для обновления записи
+    document.getElementById('zp-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
+    loadNotesData();
+}
+
+async function updateNote(id) {  //обновление записи в ЖП по id записи
     const data = {
         id: document.getElementById('new-id').value,
         name_note: document.getElementById('new-part-name').value,
@@ -145,8 +207,8 @@ async function updateNote(id) {
     loadNotesData(getZpIdFromPath());
 }
 
-//удаление позиции по id
-async function deleteNote(id) {
+
+async function deleteNote(id) { //удаление позиции по id записи
     const username = localStorage.getItem('username') || 'anonymous';
     await DataManager.deleteNoteZp(id, username);
     document.getElementById('form-close-btn').click();
