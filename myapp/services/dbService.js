@@ -55,7 +55,8 @@ export class DbService {
                 owner_date DATE, --дата создания предложения
                 response TEXT, --содержание ответа
                 response_note VARCHAR(100), --ФИО отвечающего на предложение
-                response_date DATE --дата ответа
+                response_date DATE, --дата ответа
+                FOREIGN KEY (zp_id) REFERENCES ${table_name}_zp(id) ON UPDATE CASCADE -- если в _zp.id меняется запись, то каскадно меняются все записи в _notes_zp.zp_id
             );
             `);
 

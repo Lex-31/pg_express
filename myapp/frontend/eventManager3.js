@@ -13,7 +13,7 @@ export class EventManager {
             document.querySelector('.modal-backdrop').style.display = 'block';
             document.getElementById('form-submit-btn').textContent = 'Создать';
             document.getElementById('form-submit-btn').onclick = createRow; //отправлет POST запрос создания нового ЖП
-            document.getElementById('form-delete-btn').onclick = null;
+            // document.getElementById('form-delete-btn').onclick = null;
             // document.getElementById('new-id').textContent = ''; //очищает значение ID при создании новой записи
         });
 

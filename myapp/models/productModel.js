@@ -9,6 +9,8 @@ import { pool, table_name } from '../config/dbConfig.js';
  * @method createZp - метод для создания нового ЖП
  * @method createNoteZp - метод для создания новой записи в ЖП
  * @method updateProduct - метод для обновления продукта
+ * @method updateZp - метод для обновления ЖП
+ * @method updateNoteZp - метод для обновления записи в ЖП
  * @method deleteProduct - метод для удаления продукта */
 export class ProductModel {
     static async getAllProducts() {  //метод для получения всех продуктов из базы данных
@@ -113,6 +115,7 @@ export class ProductModel {
                     (
                         SELECT json_agg(
                             json_build_object(
+                                'id', stalenergo_notes_zp.id,
                                 'note_zp_id', stalenergo_notes_zp.note_zp_id,
                                 'name_note', stalenergo_notes_zp.name_note,
                                 'note', stalenergo_notes_zp.note,
@@ -130,9 +133,9 @@ export class ProductModel {
                 WHERE stalenergo_zp.id = $1; -- выбирает запись только с определенным table_name.id
             `, [id]);
 
-            // if (notes.rowCount === 0) {  // если ЖП с таким id не найден, возвращает 404 ошибку
-            //     return null;
-            // }
+            if (notes.rowCount === 0) {  // если ЖП с таким id не найден, возвращает 404 ошибку
+                return null;
+            }
 
             return notes.rows[0];
 
@@ -247,30 +250,45 @@ export class ProductModel {
         } finally { client.release(); }
     }
 
-    static async updateZp(id, zpData) { // Метод для обновления записи продукта в таблице
+    static async updateZp(id, zpData) { // Метод для обновления ЖП в таблице
         const client = await pool.connect();
         try {
+            //надо добавить обновление полей zp_id в таблице ${table_name}_notes_zp
             await client.query(`
                 UPDATE
                     ${table_name}_zp
                 SET  -- набор данных подлежащих обновлению
-                    id = $1, -- старый id
+                    id = $1, -- новый id
                     zp_name = $2
-                WHERE  -- обновление применяется только к 1 записи параметров изделия
-                    id = $3
+                WHERE  -- обновление применяется только к 1 ЖП
+                    id = $3 -- старый id
             `, [zpData.id, zpData.zp_name, id]);
 
-            await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);  //удаляет всю документацию одного изделия. ***нужно сделать чтобы избирательно удалял
-
-            if (productData.docs && productData.docs.length > 0) {
-                const insertDocsQuery = `
-                    INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
-                    VALUES ${productData.docs.map((_, index) => `($1, $${index * 2 + 2}, $${index * 2 + 3})`).join(', ')}
-                `;
-                const docValues = [id, ...productData.docs.flat()];
-                await client.query(insertDocsQuery, docValues);
-            }
             return { msg: 'Row updated successfully', id: id };
+
+        } finally { client.release(); }
+    }
+
+    static async updateNoteZp(noteId, noteData) { //  Метод обновления существующей записи в ЖП
+        const client = await pool.connect();
+        try {
+            await client.query(`
+                UPDATE
+                    ${table_name}_notes_zp
+                SET  -- набор данных подлежащих обновлению
+                    note_zp_id = $1,
+                    name_note = $2,
+                    note = $3,
+                    owner_note = $4,
+                    owner_date = $5,
+                    response = $6,
+                    response_note = $7,
+                    response_date = $8
+                WHERE  -- обновление применяется только к 1 записи в ЖП
+                    id = $9
+            `, [noteData.note_zp_id, noteData.name_note, noteData.note, noteData.owner_note, noteData.owner_date, noteData.response, noteData.response_note, noteData.response_date, noteId]);
+
+            return { msg: 'Row updated successfully', id: noteId };
 
         } finally { client.release(); }
     }

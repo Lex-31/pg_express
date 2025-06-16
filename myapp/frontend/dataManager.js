@@ -6,7 +6,7 @@ import { serverUrl } from './config.js';
  * @method fetchProducts - GET запрос на получение изделий
  * @method fetchProductById - GET запрос на получение изделия по id
  * @method fetchItemsZp - GET запрос на получение всех ЖП
- * @method fetchNotesZp - GET запрос на получение записей из одного ЖП по id ЖП
+ * @method fetchNotesZp - GET запрос на получение всех записей из одного ЖП по id ЖП
  * @method updateProduct - PUT запрос на обновление изделия
  * @method updateZp - PUT запрос на обновление ЖП
  * @method updateNoteZp - PUT запрос на обновление записи в ЖП
@@ -40,7 +40,7 @@ export class DataManager {
         return this.fetchData(`http://${serverUrl}/api/zp`);
     }
 
-    static async fetchNotesZp(id) {  // GET запрос на получение записей из одного журнала предложений по id журнала
+    static async fetchNotesZp(id) {  // GET запрос на получение всех записей из одного журнала предложений по id журнала
         return this.fetchData(`http://${serverUrl}/api/zp/${id}`);
     }
 
