@@ -325,4 +325,53 @@ export class ProductModel {
 
         } finally { client.release(); }
     }
+
+    static async deleteZp(id) { // Метод для удаления ЖП
+        const client = await pool.connect();
+        try {
+            // Получаем данные ЖП перед удалением
+            const selectQuery = `
+                SELECT 
+                    id,
+                    zp_name
+                FROM ${table_name}_zp
+                WHERE id = $1
+            `;
+
+            const selectResult = await client.query(selectQuery, [id]);  //делаем запрос к БД
+            const deletedRow = selectResult.rows[0]; //ответ от БД {"id":18,"zp_name":"ЗФ 220"}
+
+            if (!deletedRow) { //если в ответе от БД нет данных
+                throw new Error('Row not found');
+            }
+
+            await client.query(`DELETE FROM ${table_name}_zp WHERE id = $1`, [id]);  // Удаляем ЖП
+            return { msg: 'Row and associated documents deleted successfully', id: id, deletedRow: deletedRow };
+
+        } finally { client.release(); }
+    }
+
+    static async deleteNoteZp(noteId) { // Метод для удаления записи в ЖП
+        const client = await pool.connect();
+        try {
+            // Получаем данные записи перед удалением
+            const selectQuery = `
+                SELECT 
+                    *
+                FROM ${table_name}_notes_zp
+                WHERE id = $1
+            `;
+
+            const selectResult = await client.query(selectQuery, [noteId]);  //делаем запрос к БД
+            const deletedRow = selectResult.rows[0]; //ответ от БД 
+
+            if (!deletedRow) { //если в ответе от БД нет данных
+                throw new Error('Row not found');
+            }
+
+            await client.query(`DELETE FROM ${table_name}_notes_zp WHERE id = $1`, [noteId]);  // Удаляем запись в ЖП
+            return { msg: 'Row and associated documents deleted successfully', noteId: noteId, deletedRow: deletedRow };
+
+        } finally { client.release(); }
+    }
 }

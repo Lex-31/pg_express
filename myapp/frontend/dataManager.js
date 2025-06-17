@@ -14,6 +14,7 @@ import { serverUrl } from './config.js';
  * @method createItemZp - POST запрос на создание нового ЖП
  * @method createNoteZp - POST запрос на создание записи в ЖП
  * @method deleteProduct - DELETE запрос на удаление изделия
+ * @method deleteZp - DELETE запрос на удаление ЖП
  * @method deleteNoteZp - DELETE запрос на удаление записи в ЖП */
 export class DataManager {
     static async fetchData(url) {  // универсальный метод для GET запросов к серверу
@@ -128,8 +129,18 @@ export class DataManager {
         return response.json();
     }
 
-    static async deleteNoteZp(id, username) {  // DELETE запрос на удаление записи в журнале предложений
+    static async deleteZp(id, username) {  // DELETE запрос на удаление ЖП
         const response = await fetch(`http://${serverUrl}/api/zp/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Username': username // Передача имени пользователя в заголовке
+            },
+        });
+        return response.json();
+    }
+
+    static async deleteNoteZp(noteId, username) {  // DELETE запрос на удаление записи в ЖП
+        const response = await fetch(`http://${serverUrl}/api/noteZp/${noteId}`, {
             method: 'DELETE',
             headers: {
                 'X-Username': username // Передача имени пользователя в заголовке

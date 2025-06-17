@@ -1,5 +1,4 @@
 import { DataManager } from './dataManager.js';
-import { EventManager } from './eventManager3.js';
 //Для ЖП
 
 function getZpIdFromPath() {
@@ -60,21 +59,7 @@ async function checkCredentials(username, password) {
     }
 }
 
-// Проверка состояния авторизации при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (isAuthenticated) {
-        document.getElementById('auth-btn').textContent = 'Выход';
-        document.getElementById('new-btn').style.display = 'block';
-    }
 
-    const zpId = getZpIdFromPath(); //получаем id текущего ЖП из URL
-    if (zpId) {
-        loadNotesData(zpId);  //загрузка всех записей из ЖП по id ЖП
-    } else {
-        console.error('ID журнала предложений не найден в URL');
-    }
-});
 
 document.getElementById('auth-btn').addEventListener('click', () => {
     const authButton = document.getElementById('auth-btn');
@@ -145,20 +130,10 @@ data notes: {"id":18,"zp_name":"test","json_agg":[{"id":2,"note_zp_id":2,"name_n
                 noteRow.addEventListener('dblclick', () => { // двойной клик левой кнопкой мыши
                     console.log('Клик по строке записи в ЖП', note.id); //note.id - id уникальный для записи в ЖП
                     openEditNoteZpForm(note); //открытие формы редактирования записи в ЖП
-                    // console.log('dataset', noteRow.dataset.id); //id уникальный записи в ЖП
-
-                    /* note:
-                    {id: 2, note_zp_id: 2, name_note: 'ЕИУС.436600.040.015 Наклейка', note: 'Файл наклейки отсутвует', owner_note: 'Иванов И.В.', …}
-                    */
                 });
             }
-
             tableBody.append(noteRow);
         });
-
-
-
-
     } catch (error) { console.error('Ошибка при загрузке данных:', error); }
 }
 
@@ -167,7 +142,7 @@ function openEditZpForm(id, zp_name) { //открытие формы редак�
     document.getElementById('new-zp_name').value = zp_name;
 
     document.getElementById('zp-submit-btn').onclick = () => { updateZp(id); }; //навешиваем событие на кнопку "Обновить" - обновление данных ЖП
-    document.getElementById('zp-delete-btn').onclick = () => { deleteZp(id); };
+    document.getElementById('zp-delete-btn').onclick = () => { deleteZp(id); }; //навешиваем событие на кнопку "Удалить" - удаление ЖП
     document.getElementById('edit-zp-container').style.display = 'block';
     document.querySelector('.modal-backdrop').style.display = 'block';
 
@@ -195,7 +170,7 @@ function openEditNoteZpForm(note) { //открытие формы редакти
     document.getElementById('new-response_date').value = note.response_date; //дата принятого решения
 
     document.getElementById('form-submit-btn').onclick = () => { updateNoteZp(note.id) }; //отправлет PUT запрос обновления записи в ЖП (по id записи)
-    document.getElementById('form-delete-btn').onclick = null;
+    document.getElementById('form-delete-btn').onclick = () => { deleteNoteZp(note.id) }; //отправлет DELETE запрос удаления записи в ЖП (по id записи)
     document.getElementById('new-form-container').style.display = 'block';
     document.querySelector('.modal-backdrop').style.display = 'block';
     document.getElementById('form-submit-btn').textContent = 'Обновить';
@@ -206,8 +181,6 @@ function openEditNoteZpForm(note) { //открытие формы редакти
         document.querySelector('.modal-backdrop').style.display = 'none';
         document.getElementById('new-form').reset();  //сброс полей формы
         document.getElementById('form-submit-btn').textContent = 'Создать';
-        // document.getElementById('form-submit-btn').onclick = createRow;
-        // document.getElementById('form-delete-btn').onclick = null;
     });
 }
 
@@ -217,7 +190,6 @@ async function updateZp(id) { //обновление данных ЖП (id и zp
         id: document.getElementById('new-id').value,  //получаем новое значение id из формы
         zp_name: document.getElementById('new-zp_name').value //получаем новое значение zp_name из формы
     };
-
     const response = await DataManager.updateZp(id, data, username); // Отправляем PUT запрос на сервер для обновления записи (id -старый id, data - новые данные)
     console.log('response', response);
     document.getElementById('zp-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
@@ -244,12 +216,27 @@ async function updateNoteZp(id) {  //обновление записи в ЖП �
     loadNotesData(getZpIdFromPath());
 }
 
-
-async function deleteNoteZp(id) { //удаление позиции по id записи
+async function deleteZp(id) { //удаление ЖП по id
     const username = localStorage.getItem('username') || 'anonymous';
-    await DataManager.deleteNoteZp(id, username);
-    document.getElementById('form-close-btn').click();
-    loadNotesData(getZpIdFromPath());
+    try {
+        await DataManager.deleteZp(id, username); //пердаем id удаляемого ЖП
+        window.open('/app/zp', '_self');   // Перенаправляем пользователя на страницу со списком всех ЖП
+    } catch (error) {
+        console.error('Ошибка при удалении ЖП:', error);
+        alert('Произошла ошибка при удалении ЖП. Пожалуйста, попробуйте снова.');
+    }
+}
+
+async function deleteNoteZp(noteId) { //удаление позиции по id записи
+    const username = localStorage.getItem('username') || 'anonymous';
+    try {
+        await DataManager.deleteNoteZp(noteId, username); //передаем id удаляемой записи
+    } catch (error) {
+        console.error('Ошибка при удалении записи в ЖП:', error);
+        alert('Произошла ошибка при удалении записи в ЖП. Пожалуйста, попробуйте снова.');
+    }
+    document.getElementById('form-close-btn').click(); //програмно закрываем форму
+    loadNotesData(getZpIdFromPath()); //загружаем данные обновленного ЖП
 }
 
 export async function createRow() { //Отправляет POST запрос на сервер для создания новой записи в ЖП
@@ -275,5 +262,82 @@ export async function createRow() { //Отправляет POST запрос н�
     loadNotesData(zpId);
 }
 
-// Навешивание событий на элементы управления (конпку создания новой записи)
-EventManager.addEventListeners();
+document.addEventListener('DOMContentLoaded', () => {
+    // Проверка состояния авторизации при загрузке страницы
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    if (isAuthenticated) {
+        document.getElementById('auth-btn').textContent = 'Выход';
+        document.getElementById('new-btn').style.display = 'block';
+    }
+
+    const zpId = getZpIdFromPath(); //получаем id текущего ЖП из URL
+    if (zpId) {
+        loadNotesData(zpId);  //загрузка всех записей из ЖП по id ЖП
+    } else {
+        console.error('ID журнала предложений не найден в URL');
+    }
+
+    // Навешивание событий на ячейки таблицы при наведении
+    const tableBody = document.getElementById('table-body'); //берем контейнер строк таблицы
+    if (tableBody) {
+        tableBody.addEventListener('mouseover', (e) => { // Обработчик для наведения на ячейку
+            const target = e.target; // Получаем элемент, на котором произошло наведение
+            if (target.tagName === 'TD') { //если элемент - ячейка таблицы <td>
+                const row = target.parentElement; //берем родительский элемент - строка таблицы <tr>
+                const cells = Array.from(row.cells); //получаем массив из ячеек текущей строки 6шт
+                const cellIndex = cells.indexOf(target); //определяем индекс ячейки из массива
+
+                // Сбрасываем предыдущие выделения ячеек на текущей строке
+                cells.forEach(cell => {
+                    cell.classList.remove('highlight-group1', 'highlight-group2');
+                });
+
+                // Определяем группу и выделяем
+                if (cellIndex < 4) { //если индекс ячейки на которую навели от 0 до 3 - 1группа для автора записи в ЖП
+                    for (let i = 0; i < 4; i++) { // Первым 4 колонкам устанавливаем класс выделения
+                        cells[i].classList.add('highlight-group1');
+                    }
+                } else { // иначе нужно выделить последние 2 колонки
+                    for (let i = 4; i < 6; i++) {
+                        cells[i].classList.add('highlight-group2');
+                    }
+                }
+            }
+        });
+
+        tableBody.addEventListener('mouseout', (e) => { // Обработчик для снятия выделения при покидании ячейки
+            const target = e.target;
+            if (target.tagName === 'TD') {
+                const row = target.parentElement; //строка таблицы на которой навели <tr>
+                const cells = Array.from(row.cells); //массив ячеек этой строки
+
+                // Проверяем, не перешёл ли курсор на другую ячейку в той же строке
+                const related = e.relatedTarget; //ячейка на которую перешел курсор после покидания ячейки target
+                if (!related || !row.contains(related)) { //если related несуществует или это не ячейка в той же строке 
+                    // Снимаем выделение только если курсор вышел за пределы строки
+                    cells.forEach(cell => {
+                        cell.classList.remove('highlight-group1', 'highlight-group2');
+                    });
+                }
+            }
+        });
+    }
+
+    // Навешивание событий на элементы управления (конпку создания новой записи и закрытия формы создания) 
+    //открывает форму при создании новой записи в ЖП
+    document.getElementById('new-btn').addEventListener('click', () => {
+        document.getElementById('new-form-container').style.display = 'block';
+        document.querySelector('.modal-backdrop').style.display = 'block';
+        document.getElementById('form-submit-btn').textContent = 'Создать';
+        document.getElementById('form-submit-btn').onclick = createRow; //отправлет POST запрос создания нового ЖП
+    });
+
+    //закрытие формы создания новой записи в ЖП
+    document.getElementById('form-close-btn').addEventListener('click', () => {
+        document.getElementById('new-form-container').style.display = 'none';
+        document.querySelector('.modal-backdrop').style.display = 'none';
+        document.getElementById('new-form').reset();  //сброс полей формы
+        document.getElementById('form-submit-btn').textContent = 'Создать';
+    });
+
+});

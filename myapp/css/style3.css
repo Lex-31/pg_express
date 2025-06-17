@@ -114,7 +114,18 @@ p {
     background: #eeeeee;
 }
 
-.table tbody tr:hover {
+/* .table tbody tr:hover {
+    background-color: #bfd3f7;
+} */
+
+/* Стили для выделения первых четырех колонок */
+.highlight-group1 {
+    background-color: #bfd3f7;
+}
+
+/* Стили для выделения последних двух колонок */
+
+.highlight-group2 {
     background-color: #bfd3f7;
 }
 

@@ -14,7 +14,9 @@ const logger = new Logger();
  * @method updateProduct - Обновление существующего продукта.
  * @method updateZp - Обновление существующего ЖП.
  * @method updateNoteZp - Обновление существующей записи в ЖП.
- * @method deleteProduct - Удаление продукта. */
+ * @method deleteProduct - Удаление продукта.
+ * @method deleteZp - Удаление ЖП.
+ * @method deleteNoteZp - Удаление записи в ЖП. */
 export class ProductController {
     static async getAllProducts(req, res) {  //получение всех записей из таблицы
         try {
@@ -173,6 +175,40 @@ export class ProductController {
 
             // Логирование удаленной записи
             logger.logAction(username, 'DELETE', id, result.deletedRow);
+
+            res.json(result);
+        } catch (error) {
+            console.error('Error executing query', error.stack);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    static async deleteZp(req, res) {  //удаление ЖП по id
+        const { id } = req.params;
+        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+
+        try {
+            const result = await ProductModel.deleteZp(id);
+
+            // Логирование удаленной записи
+            logger.logAction(username, 'DELETE', id, result.deletedRow);
+
+            res.json(result);
+        } catch (error) {
+            console.error('Error executing query', error.stack);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    static async deleteNoteZp(req, res) {  //удаление записи в ЖП по id
+        const { noteId } = req.params;
+        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+
+        try {
+            const result = await ProductModel.deleteNoteZp(noteId);
+
+            // Логирование удаленной записи
+            logger.logAction(username, 'DELETE', noteId, result.deletedRow);
 
             res.json(result);
         } catch (error) {

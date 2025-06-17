@@ -13,5 +13,7 @@ router.put('/api/main/:id', ProductController.updateProduct);  // маршрут
 router.put('/api/zp/:id', ProductController.updateZp);  // маршрут для обновления ЖП по ID ЖП
 router.put('/api/noteZp/:noteId', ProductController.updateNoteZp);  // маршрут для обновления записи в ЖП по ID записи
 router.delete('/api/main/:id', ProductController.deleteProduct);  // маршрут для удаления продукта по ID
+router.delete('/api/zp/:id', ProductController.deleteZp);  // маршрут для удаления ЖП по ID ЖП
+router.delete('/api/noteZp/:noteId', ProductController.deleteNoteZp);  // маршрут для удаления записи в ЖП по ID записи
 
 export default router;

@@ -56,7 +56,7 @@ export class DbService {
                 response TEXT, --содержание ответа
                 response_note VARCHAR(100), --ФИО отвечающего на предложение
                 response_date DATE, --дата ответа
-                FOREIGN KEY (zp_id) REFERENCES ${table_name}_zp(id) ON UPDATE CASCADE -- если в _zp.id меняется запись, то каскадно меняются все записи в _notes_zp.zp_id
+                FOREIGN KEY (zp_id) REFERENCES ${table_name}_zp(id) ON UPDATE CASCADE ON DELETE CASCADE -- если в _zp.id меняется/удаляется запись, то каскадно меняются/удаляются все записи в _notes_zp.zp_id
             );
             `);
 
