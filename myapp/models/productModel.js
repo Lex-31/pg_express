@@ -47,7 +47,6 @@ export class ProductModel {
                 item.docs = docsResult.rows;
             }
             return items;
-
         } finally { client.release(); }
     }
 
@@ -61,10 +60,9 @@ export class ProductModel {
                 FROM
                     ${table_name}_zp zp
                 ORDER BY
-                    zp.id  -- сортировка по номеру ЖП
+                    zp.id ASC  -- сортировка по номеру ЖП
             `);
             return zp.rows;
-
         } finally { client.release(); }
     }
 
@@ -86,7 +84,6 @@ export class ProductModel {
             `, [id]);
             if (result.rowCount === 0) {  // если запись не найдена, возвращает 404 ошибку
                 return null;
-
             }
             const docsResult = await client.query(`
                 SELECT
@@ -100,7 +97,6 @@ export class ProductModel {
             const data = result.rows[0];
             data.docs = docsResult.rows;
             return data;
-
         } finally { client.release(); }
     }
 
@@ -123,22 +119,23 @@ export class ProductModel {
                                 'owner_date', stalenergo_notes_zp.owner_date,
                                 'response', stalenergo_notes_zp.response,
                                 'response_note', stalenergo_notes_zp.response_note,
-                                'response_date', stalenergo_notes_zp.response_date
+                                'response_date', stalenergo_notes_zp.response_date,
+                                'archive', stalenergo_notes_zp.archive
                             )
                         )
-                        FROM stalenergo_notes_zp
-                        WHERE stalenergo_notes_zp.zp_id = stalenergo_zp.id
+                        FROM (
+                            SELECT * FROM stalenergo_notes_zp
+                            WHERE stalenergo_notes_zp.zp_id = stalenergo_zp.id
+                            ORDER BY stalenergo_notes_zp.note_zp_id ASC -- сортировка записей по номеру п/п
+                        ) AS stalenergo_notes_zp
                     )
                 FROM stalenergo_zp
                 WHERE stalenergo_zp.id = $1; -- выбирает запись только с определенным table_name.id
             `, [id]);
-
             if (notes.rowCount === 0) {  // если ЖП с таким id не найден, возвращает 404 ошибку
                 return null;
             }
-
             return notes.rows[0];
-
         } finally { client.release(); }
     }
 
@@ -155,7 +152,6 @@ export class ProductModel {
             `, [productData.category_id, productData.item_number, productData.prod_name, productData.prod_mark, productData.prod_number, productData.prod_okpd, productData.prod_okved, productData.prod_dir]);
 
             const prodId = result.rows[0].id;
-
             if (productData.docs && productData.docs.length > 0) {
                 const insertDocsQuery = `
                     INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
@@ -165,7 +161,6 @@ export class ProductModel {
                 await client.query(insertDocsQuery, docValues); //вставить код SQL в функцию
             }
             return { msg: 'Row inserted successfully', id: prodId }; //успешное добавление, возвращается id новой записи
-
         } catch (err) {
             console.error('Error executing query', err.stack);
             res.status(500).send('Internal Server Error');
@@ -185,9 +180,7 @@ export class ProductModel {
             `, [zpData.id, zpData.zp_name]);
 
             const zpId = result.rows[0].id;
-
             return { msg: 'Row inserted successfully', id: zpId }; //успешное добавление, возвращается id новой записи
-
         } catch (err) {
             console.error('Error executing query', err.stack);
             res.status(500).send('Internal Server Error');
@@ -207,9 +200,7 @@ export class ProductModel {
             `, [noteData.note_zp_id, noteData.zp_id, noteData.name_note, noteData.note, noteData.owner_note, noteData.owner_date, noteData.response, noteData.response_note, noteData.response_date]);
 
             const noteId = result.rows[0].id;
-
             return { msg: 'Row inserted successfully', id: noteId }; //успешное добавление, возвращается id новой записи
-
         } catch (err) {
             console.error('Error executing query', err.stack);
             res.status(500).send('Internal Server Error');
@@ -236,7 +227,6 @@ export class ProductModel {
             `, [productData.category_id, productData.item_number, productData.prod_name, productData.prod_mark, productData.prod_number, productData.prod_okpd, productData.prod_okved, productData.prod_dir, id]);
 
             await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);  //удаляет всю документацию одного изделия. ***нужно сделать чтобы избирательно удалял
-
             if (productData.docs && productData.docs.length > 0) {
                 const insertDocsQuery = `
                     INSERT INTO ${table_name}_doc (prod_id, doc_name, doc_link)
@@ -246,7 +236,6 @@ export class ProductModel {
                 await client.query(insertDocsQuery, docValues);
             }
             return { msg: 'Row updated successfully', id: id };
-
         } finally { client.release(); }
     }
 
@@ -263,9 +252,7 @@ export class ProductModel {
                 WHERE  -- обновление применяется только к 1 ЖП
                     id = $3 -- старый id
             `, [zpData.id, zpData.zp_name, id]);
-
             return { msg: 'Row updated successfully', id: id };
-
         } finally { client.release(); }
     }
 
@@ -283,13 +270,12 @@ export class ProductModel {
                     owner_date = $5,
                     response = $6,
                     response_note = $7,
-                    response_date = $8
+                    response_date = $8,
+                    archive = $9
                 WHERE  -- обновление применяется только к 1 записи в ЖП
-                    id = $9
-            `, [noteData.note_zp_id, noteData.name_note, noteData.note, noteData.owner_note, noteData.owner_date, noteData.response, noteData.response_note, noteData.response_date, noteId]);
-
+                    id = $10
+            `, [noteData.note_zp_id, noteData.name_note, noteData.note, noteData.owner_note, noteData.owner_date, noteData.response, noteData.response_note, noteData.response_date, noteData.archive, noteId]);
             return { msg: 'Row updated successfully', id: noteId };
-
         } finally { client.release(); }
     }
 
@@ -312,17 +298,12 @@ export class ProductModel {
             `;
             const selectResult = await client.query(selectQuery, [id]);
             const deletedRow = selectResult.rows[0];
-
             if (!deletedRow) {
                 throw new Error('Row not found');
             }
-
-            // Удаляем все документы, связанные с изделием
-            await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]);
-            // Удаляем само изделие
-            await client.query(`DELETE FROM ${table_name} WHERE id = $1`, [id]);
+            await client.query(`DELETE FROM ${table_name}_doc WHERE prod_id = $1`, [id]); // Удаляем все документы, связанные с изделием
+            await client.query(`DELETE FROM ${table_name} WHERE id = $1`, [id]); // Удаляем само изделие
             return { msg: 'Row and associated documents deleted successfully', id: id, deletedRow: deletedRow };
-
         } finally { client.release(); }
     }
 
@@ -337,17 +318,13 @@ export class ProductModel {
                 FROM ${table_name}_zp
                 WHERE id = $1
             `;
-
             const selectResult = await client.query(selectQuery, [id]);  //делаем запрос к БД
             const deletedRow = selectResult.rows[0]; //ответ от БД {"id":18,"zp_name":"ЗФ 220"}
-
             if (!deletedRow) { //если в ответе от БД нет данных
                 throw new Error('Row not found');
             }
-
             await client.query(`DELETE FROM ${table_name}_zp WHERE id = $1`, [id]);  // Удаляем ЖП
             return { msg: 'Row and associated documents deleted successfully', id: id, deletedRow: deletedRow };
-
         } finally { client.release(); }
     }
 
@@ -361,17 +338,13 @@ export class ProductModel {
                 FROM ${table_name}_notes_zp
                 WHERE id = $1
             `;
-
             const selectResult = await client.query(selectQuery, [noteId]);  //делаем запрос к БД
             const deletedRow = selectResult.rows[0]; //ответ от БД 
-
             if (!deletedRow) { //если в ответе от БД нет данных
                 throw new Error('Row not found');
             }
-
             await client.query(`DELETE FROM ${table_name}_notes_zp WHERE id = $1`, [noteId]);  // Удаляем запись в ЖП
             return { msg: 'Row and associated documents deleted successfully', noteId: noteId, deletedRow: deletedRow };
-
         } finally { client.release(); }
     }
 }

@@ -29,7 +29,8 @@
 
     <!-- контейнер кнопопок управления -->
     <div class="a4-container">
-        <button id="new-btn">Добавить новое</button>
+        <button id="back-btn">Назад в список ЖП</button>
+        <button id="new-btn">Добавить новую запись</button>
 
         <!-- Таблица с заголовком и колонками -->
         <table class="table">
@@ -92,6 +93,7 @@
             <label>Фамилия, подпись автора(ов) принятого решения, дата: <input type="text"
                     id="new-response_note"></label>
             <label>Дата принятия решения: <input type="date" id="new-response_date"></label>
+            <label style="display: block;">Архивная запись: <input type="checkbox" id="new-archive"></label>
 
             <div class="buttons">
                 <button type="button" id="form-submit-btn">Создать</button>

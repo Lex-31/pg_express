@@ -59,8 +59,6 @@ async function checkCredentials(username, password) {
     }
 }
 
-
-
 document.getElementById('auth-btn').addEventListener('click', () => {
     const authButton = document.getElementById('auth-btn');
     if (authButton.textContent === 'Авторизация') {
@@ -77,12 +75,8 @@ async function loadNotesData(id) {  //загрузка всех записей �
         const notes = await DataManager.fetchNotesZp(id); // GET запрос на получение всех записей из ЖП == id
         console.log(`data notes: ${JSON.stringify(notes)}`);
         /*
-data notes: {"id":18,"zp_name":"test","json_agg":[{"id":2,"note_zp_id":2,"name_note":"ЕИУС.436600.040.015 Наклейка","note":"Файл наклейки отсутвует","owner_note":"Иванов И.В.","owner_date":"2025-02-17","response":"Наклейку заказывать по файлу \"ЕИУС.436600.040.015 изм. 1ю cdr\" КД будет откорректирована установленном порядке","response_note":"Клементьев В.А.","response_date":"2025-02-20"}]}
+data notes: {"id":18,"zp_name":"ЗФ 220","json_agg":[{"id":1,"note_zp_id":1,"name_note":"ЕИУС.436600.040.015 Наклейка","note":"Файл наклейки не соответсвует графике чертежа","owner_note":"Сердюк Л.В.","owner_date":"2015-08-20","response":"Наклейку заказывать по файлу \"ЕИУС.436600.040.015 изм. 1ю cdr\" КД будет откорректирована установленном порядке","response_note":"Сердюк Л.В.","response_date":"2015-08-26","archive":true}]}
         */
-
-
-
-
         document.title = `Журнал предложений № ${notes.id || 'Неизвестный ID'} - ${notes.zp_name || 'Неизвестное название'}`; //установка заголовка страницы
 
         const zpIdHeader = notes.id || 'Неизвестный №'; //установка данных о ЖП из БД
@@ -125,11 +119,28 @@ data notes: {"id":18,"zp_name":"test","json_agg":[{"id":2,"note_zp_id":2,"name_n
                 <td>${note.response_note || ''}<br>${note.response_date || ''}</td>
             `;
 
+            // Подсвечиваем архивные записи
+            if (note.archive === true) {
+                noteRow.classList.add('highlight-archiv');
+            }
+
             //навешивание события двойного клика для редактирования строки записи в ЖП
-            if (localStorage.getItem('username') === 'admin') { //security если пользователь - admin
-                noteRow.addEventListener('dblclick', () => { // двойной клик левой кнопкой мыши
+            if (localStorage.getItem('username') === 'admin' && note.archive === false) { //security если пользователь - admin и запись не архивная
+                noteRow.addEventListener('dblclick', (e) => { // двойной клик левой кнопкой мыши
                     console.log('Клик по строке записи в ЖП', note.id); //note.id - id уникальный для записи в ЖП
-                    openEditNoteZpForm(note); //открытие формы редактирования записи в ЖП
+                    const target = e.target; //получаем элемент, на котором был клик
+                    if (target.tagName === 'TD') { // если клик был по ячейке
+                        const row = target.parentElement; //получаем родителя ячейки - строку
+                        const cells = Array.from(row.cells); //получаем все ячейки строки в массиве
+                        const cellIndex = cells.indexOf(target); //получаем индекс ячейки, на которой был клик
+
+                        // Определяем группу и открываем форму с нужными полями
+                        if (cellIndex < 4) {
+                            openEditNoteZpForm(note, 'group1'); //открытие формы редактирования записи в ЖП для владельца
+                        } else {
+                            openEditNoteZpForm(note, 'group2'); //открытие формы редактирования записи в ЖП для отвечающего
+                        }
+                    }
                 });
             }
             tableBody.append(noteRow);
@@ -151,29 +162,41 @@ function openEditZpForm(id, zp_name) { //открытие формы редак�
         document.getElementById('edit-zp-container').style.display = 'none';
         document.querySelector('.modal-backdrop').style.display = 'none';
         document.getElementById('edit-zp').reset();  //сброс полей формы
-        // document.getElementById('zp-submit-btn').onclick = updateZp;
-        // document.getElementById('zp-delete-btn').onclick = deleteZp;
     });
 }
 
-function openEditNoteZpForm(note) { //открытие формы редактирования записи в ЖП
-    console.log(note);
+function openEditNoteZpForm(note, group) { //открытие формы редактирования записи в ЖП
+    //открываем форму
+    document.getElementById('new-form-container').style.display = 'block';
+    document.querySelector('.modal-backdrop').style.display = 'block';
+    document.getElementById('form-submit-btn').textContent = 'Обновить';
+    document.getElementById('form-submit-btn').onclick = () => { updateNoteZp(note.id) }; //отправлет PUT запрос обновления записи в ЖП (по id записи)
+    document.getElementById('form-delete-btn').onclick = () => { deleteNoteZp(note.id) }; //отправлет DELETE запрос удаления записи в ЖП (по id записи)
 
     //заполняем поля формы данными текущей записи в ЖП
+    //группа 1
     document.getElementById('new-note_zp_id').value = note.note_zp_id; //№ п/п
     document.getElementById('new-name_note').value = note.name_note; //Наименование узла (детали), обозначение
     document.getElementById('new-note').value = note.note; //Содержание замечания (предложения)
     document.getElementById('new-owner_note').value = note.owner_note; //Фамилия, подпись автора (инициатора) изменения, дата
     document.getElementById('new-owner_date').value = note.owner_date; //дата автора
+    //группа 2
     document.getElementById('new-response').value = note.response; //Ответ на замечание (предложение)
     document.getElementById('new-response_note').value = note.response_note; //Фамилия, подпись автора(ов) принятого решения
     document.getElementById('new-response_date').value = note.response_date; //дата принятого решения
 
-    document.getElementById('form-submit-btn').onclick = () => { updateNoteZp(note.id) }; //отправлет PUT запрос обновления записи в ЖП (по id записи)
-    document.getElementById('form-delete-btn').onclick = () => { deleteNoteZp(note.id) }; //отправлет DELETE запрос удаления записи в ЖП (по id записи)
-    document.getElementById('new-form-container').style.display = 'block';
-    document.querySelector('.modal-backdrop').style.display = 'block';
-    document.getElementById('form-submit-btn').textContent = 'Обновить';
+    if (group === 'group1') { //если редактируем первые 4 столбца
+        document.getElementById('new-response').parentElement.style.display = 'none';
+        document.getElementById('new-response_note').parentElement.style.display = 'none';
+        document.getElementById('new-response_date').parentElement.style.display = 'none';
+    } else if (group === 'group2') { //если редактируем последние 2 столбца
+        document.getElementById('new-note_zp_id').parentElement.style.display = 'none';
+        document.getElementById('new-name_note').parentElement.style.display = 'none';
+        document.getElementById('new-note').parentElement.style.display = 'none';
+        document.getElementById('new-owner_note').parentElement.style.display = 'none';
+        document.getElementById('new-owner_date').parentElement.style.display = 'none';
+        document.getElementById('form-delete-btn').style.display = 'none';
+    }
 
     //закрытие формы обновления записи в ЖП
     document.getElementById('form-close-btn').addEventListener('click', () => { // вешаем событие на кнопку "Отмена"
@@ -181,6 +204,16 @@ function openEditNoteZpForm(note) { //открытие формы редакти
         document.querySelector('.modal-backdrop').style.display = 'none';
         document.getElementById('new-form').reset();  //сброс полей формы
         document.getElementById('form-submit-btn').textContent = 'Создать';
+        //сбрасываем видимость полей формы
+        document.getElementById('new-note_zp_id').parentElement.style.display = 'flex';
+        document.getElementById('new-response').parentElement.style.display = 'flex';
+        document.getElementById('new-response_note').parentElement.style.display = 'flex';
+        document.getElementById('new-response_date').parentElement.style.display = 'flex';
+        document.getElementById('new-name_note').parentElement.style.display = 'flex';
+        document.getElementById('new-note').parentElement.style.display = 'flex';
+        document.getElementById('new-owner_note').parentElement.style.display = 'flex';
+        document.getElementById('new-owner_date').parentElement.style.display = 'flex';
+        document.getElementById('form-delete-btn').style.display = 'block';
     });
 }
 
@@ -207,7 +240,8 @@ async function updateNoteZp(id) {  //обновление записи в ЖП �
         owner_date: document.getElementById('new-owner_date').value || null, //дата автора
         response: document.getElementById('new-response').value, //Ответ на замечание (предложение)
         response_note: document.getElementById('new-response_note').value, //Фамилия, подпись автора(ов) принятого решения
-        response_date: document.getElementById('new-response_date').value || null //дата принятого решения
+        response_date: document.getElementById('new-response_date').value || null, //дата принятого решения
+        archive: document.getElementById('new-archive').value //архивация записи
     };
 
     const response = await DataManager.updateNoteZp(id, data, username); // Отправляем PUT запрос на сервер для обновления записи (id - идентификатор записи в таблице stalenergo_notes_zp)
@@ -239,7 +273,7 @@ async function deleteNoteZp(noteId) { //удаление позиции по id 
     loadNotesData(getZpIdFromPath()); //загружаем данные обновленного ЖП
 }
 
-export async function createRow() { //Отправляет POST запрос на сервер для создания новой записи в ЖП
+async function createRow() { //Отправляет POST запрос на сервер для создания новой записи в ЖП
     const zpId = getZpIdFromPath(); //получаем id текущего ЖП
 
     const data = { //данные из формы для создания записи в ЖП
@@ -329,6 +363,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('new-form-container').style.display = 'block';
         document.querySelector('.modal-backdrop').style.display = 'block';
         document.getElementById('form-submit-btn').textContent = 'Создать';
+
+        //скрываем некоторые поля
+        document.getElementById('new-response').parentElement.style.display = 'none';
+        document.getElementById('new-response_note').parentElement.style.display = 'none';
+        document.getElementById('new-response_date').parentElement.style.display = 'none';
+        document.getElementById('new-archive').parentElement.style.display = 'none';
+        document.getElementById('form-delete-btn').style.display = 'none';
+
         document.getElementById('form-submit-btn').onclick = createRow; //отправлет POST запрос создания нового ЖП
     });
 
@@ -338,6 +380,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.modal-backdrop').style.display = 'none';
         document.getElementById('new-form').reset();  //сброс полей формы
         document.getElementById('form-submit-btn').textContent = 'Создать';
+        //восстанавливаем скрытые поля
+        document.getElementById('new-response').parentElement.style.display = 'flex';
+        document.getElementById('new-response_note').parentElement.style.display = 'flex';
+        document.getElementById('new-response_date').parentElement.style.display = 'flex';
+        document.getElementById('new-archive').parentElement.style.display = 'block';
+        document.getElementById('form-delete-btn').style.display = 'block';
     });
 
+    //кнопка возврата назад в список ЖП
+    document.getElementById('back-btn').addEventListener('click', () => {
+        window.open('/app/zp', '_self');   // Перенаправляем пользователя на страницу со списком всех ЖП
+    })
 });

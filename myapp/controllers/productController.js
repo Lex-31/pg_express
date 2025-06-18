@@ -69,13 +69,9 @@ export class ProductController {
     static async createProduct(req, res) {  //добавление новой записи
         const productData = req.body;
         const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
-
         try {
             const result = await ProductModel.createProduct(productData);
-
-            // Логирование созданной записи
-            logger.logAction(username, 'CREATE', result.id, productData);
-
+            logger.logAction(username, 'CREATE', result.id, productData); // Логирование созданной записи
             res.status(201).json(result);
         } catch (error) {
             console.error('Error executing query', error.stack);
@@ -86,12 +82,9 @@ export class ProductController {
     static async createZp(req, res) {  //добавление нового ЖП
         const zpData = req.body;
         const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
-
         try {
             const result = await ProductModel.createZp(zpData);
-
             logger.logAction(username, 'CREATE', result.id, zpData); // Логирование созданной записи
-
             res.status(201).json(result);
         } catch (error) {
             console.error('Error executing query', error.stack);
@@ -102,15 +95,9 @@ export class ProductController {
     static async createNoteZp(req, res) {  //добавление новой записи в ЖП
         const noteData = req.body;
         const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
-
-        // console.log(`noteData: ${JSON.stringify(noteData)}`);
-
         try {
             const result = await ProductModel.createNoteZp(noteData); //возвращает { msg: 'Row inserted successfully', id: noteId } где id - id новой записи в ЖП
-            // console.log(`result: ${JSON.stringify(result)}`);
-
             logger.logAction(username, 'CREATE', result.id, noteData); // Логирование созданной записи
-
             res.status(201).json(result);
         } catch (error) {
             console.error('Error executing query', error.stack);
@@ -145,18 +132,12 @@ export class ProductController {
         }
     }
 
-
-    //
     static async updateNoteZp(req, res) {  //Обновление существующей записи в ЖП
         const { noteId } = req.params; //id записи
         const noteData = req.body;
         const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
-
-        console.log(`noteData: ${JSON.stringify(noteData)}`);
-
         try {
             const result = await ProductModel.updateNoteZp(noteId, noteData); //возвращает { msg: 'Row inserted successfully', id: noteId } где id - id обновленной записи в ЖП
-            console.log(`result: ${JSON.stringify(result)}`);
             logger.logAction(username, 'UPDATE', noteId, noteData); // Логирование обновленной записи
             res.status(201).json(result);
         } catch (error) {
@@ -164,18 +145,13 @@ export class ProductController {
             res.status(500).send('Internal Server Error');
         }
     }
-    //
 
     static async deleteProduct(req, res) {  //удаление записи по id
         const { id } = req.params;
         const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
-
         try {
             const result = await ProductModel.deleteProduct(id);
-
-            // Логирование удаленной записи
-            logger.logAction(username, 'DELETE', id, result.deletedRow);
-
+            logger.logAction(username, 'DELETE', id, result.deletedRow); // Логирование удаленной записи
             res.json(result);
         } catch (error) {
             console.error('Error executing query', error.stack);
@@ -186,13 +162,9 @@ export class ProductController {
     static async deleteZp(req, res) {  //удаление ЖП по id
         const { id } = req.params;
         const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
-
         try {
             const result = await ProductModel.deleteZp(id);
-
-            // Логирование удаленной записи
-            logger.logAction(username, 'DELETE', id, result.deletedRow);
-
+            logger.logAction(username, 'DELETE', id, result.deletedRow); // Логирование удаленной записи
             res.json(result);
         } catch (error) {
             console.error('Error executing query', error.stack);
@@ -203,13 +175,9 @@ export class ProductController {
     static async deleteNoteZp(req, res) {  //удаление записи в ЖП по id
         const { noteId } = req.params;
         const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
-
         try {
             const result = await ProductModel.deleteNoteZp(noteId);
-
-            // Логирование удаленной записи
-            logger.logAction(username, 'DELETE', noteId, result.deletedRow);
-
+            logger.logAction(username, 'DELETE', noteId, result.deletedRow); // Логирование удаленной записи
             res.json(result);
         } catch (error) {
             console.error('Error executing query', error.stack);

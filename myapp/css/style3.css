@@ -19,8 +19,27 @@ p {
     border: 5px solid transparent;
 }
 
-#auth-form-container {
+/* Стили для кнопки возврата в список ЖП */
+#back-btn {
     position: fixed;
+    /* Фиксируем положение кнопки */
+    bottom: 140px;
+    /* Расстояние от нижнего края окна */
+    right: 20px;
+    /* Расстояние от правого края окна */
+    padding: 15px 25px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    z-index: 1000;
+    /* Убедитесь, что кнопка поверх остального контента */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#back-btn:hover {
+    background-color: #0056b3;
 }
 
 /* Стили для кнопки авторизации */
@@ -129,6 +148,11 @@ p {
     background-color: #bfd3f7;
 }
 
+/* Подсветка архивированной строки */
+.highlight-archiv {
+    color: gray;
+}
+
 /* Модальное окно для формы */
 #new-form-container,
 #edit-zp-container {
@@ -217,10 +241,17 @@ p {
         margin: 1cm 1cm 1cm 2cm;
     }
 
+    /* Отключаем кнопки для отображения при печати *
+    #back-btn,
     #new-btn,
     #toggle-doc-btn,
     #auth-btn {
         display: none !important;
+    }
+
+    /* Отключаем стиль подсветки архивированной строки при печати */
+    .highlight-archiv {
+        color: inherit !important;
     }
 
 }

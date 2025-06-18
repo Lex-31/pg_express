@@ -56,6 +56,7 @@ export class DbService {
                 response TEXT, --содержание ответа
                 response_note VARCHAR(100), --ФИО отвечающего на предложение
                 response_date DATE, --дата ответа
+                archive BOOLEAN DEFAULT false, --признак архивности
                 FOREIGN KEY (zp_id) REFERENCES ${table_name}_zp(id) ON UPDATE CASCADE ON DELETE CASCADE -- если в _zp.id меняется/удаляется запись, то каскадно меняются/удаляются все записи в _notes_zp.zp_id
             );
             `);
@@ -310,7 +311,8 @@ export class DbService {
                         { name: 'owner_date', type: 'date', nullable: true },
                         { name: 'response', type: 'text', nullable: true },
                         { name: 'response_note', type: 'character varying', nullable: true },
-                        { name: 'response_date', type: 'date', nullable: true }
+                        { name: 'response_date', type: 'date', nullable: true },
+                        { name: 'archive', type: 'boolean', nullable: true }
                     ]
                 }
             ];

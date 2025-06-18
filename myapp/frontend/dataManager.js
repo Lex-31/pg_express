@@ -11,7 +11,7 @@ import { serverUrl } from './config.js';
  * @method updateZp - PUT запрос на обновление ЖП
  * @method updateNoteZp - PUT запрос на обновление записи в ЖП
  * @method createProduct - POST запрос на создание изделия
- * @method createItemZp - POST запрос на создание нового ЖП
+ * @method createZp - POST запрос на создание нового ЖП
  * @method createNoteZp - POST запрос на создание записи в ЖП
  * @method deleteProduct - DELETE запрос на удаление изделия
  * @method deleteZp - DELETE запрос на удаление ЖП
@@ -94,7 +94,7 @@ export class DataManager {
         return response.json();
     }
 
-    static async createItemZp(data, username) {  // POST запрос на создание нового ЖП
+    static async createZp(data, username) {  // POST запрос на создание нового ЖП
         const response = await fetch(`http://${serverUrl}/api/zp`, {
             method: 'POST',
             headers: {
