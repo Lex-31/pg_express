@@ -2,9 +2,10 @@ import { pool, table_name } from '../config/dbConfig.js';
 
 /** Класс для SQL-запросов к таблицам продуктов в базе данных
  * @method getAllProducts - метод для получения всех продуктов из базы данных
- * @method getAllZp - метод для получения всех ЖП
  * @method getProductById - метод для получения продукта по id
+ * @method getAllZp - метод для получения всех ЖП
  * @method getNotesZp - метод для получения всех записей в ЖП по id
+ * @method getCountNotesInZp - метод для получения кол-ва записей в ЖП
  * @method createProduct - метод для создания нового продукта
  * @method createZp - метод для создания нового ЖП
  * @method createNoteZp - метод для создания новой записи в ЖП
@@ -50,22 +51,6 @@ export class ProductModel {
         } finally { client.release(); }
     }
 
-    static async getAllZp() {  //метод для получения всех ЖП
-        const client = await pool.connect();
-        try {
-            const zp = await client.query(`
-                SELECT
-                    zp.id,
-                    zp.zp_name
-                FROM
-                    ${table_name}_zp zp
-                ORDER BY
-                    zp.id ASC  -- сортировка по номеру ЖП
-            `);
-            return zp.rows;
-        } finally { client.release(); }
-    }
-
     static async getProductById(id) {  // метод для получения продукта по id
         const client = await pool.connect();
         try {
@@ -100,6 +85,22 @@ export class ProductModel {
         } finally { client.release(); }
     }
 
+    static async getAllZp() {  //метод для получения всех ЖП
+        const client = await pool.connect();
+        try {
+            const zp = await client.query(`
+                SELECT
+                    zp.id,
+                    zp.zp_name,
+                    zp.archive
+                FROM
+                    ${table_name}_zp zp
+                ORDER BY
+                    zp.id ASC;  -- сортировка по номеру ЖП
+            `);
+            return zp.rows;
+        } finally { client.release(); }
+    }
 
     static async getNotesZp(id) {  // метод для получения всех записей в ЖП по id
         const client = await pool.connect();
@@ -108,6 +109,7 @@ export class ProductModel {
                 SELECT
                     stalenergo_zp.id,
                     stalenergo_zp.zp_name,
+                    stalenergo_zp.archive,
                     (
                         SELECT json_agg(
                             json_build_object(
@@ -120,7 +122,8 @@ export class ProductModel {
                                 'response', stalenergo_notes_zp.response,
                                 'response_note', stalenergo_notes_zp.response_note,
                                 'response_date', stalenergo_notes_zp.response_date,
-                                'archive', stalenergo_notes_zp.archive
+                                'archive', stalenergo_notes_zp.archive,
+                                'ii_cd', stalenergo_notes_zp.ii_cd
                             )
                         )
                         FROM (
@@ -136,6 +139,24 @@ export class ProductModel {
                 return null;
             }
             return notes.rows[0];
+        } finally { client.release(); }
+    }
+
+    static async getCountNotesInZp() {  //метод для получения кол-ва записей в ЖП
+        const client = await pool.connect();
+        try {
+            const count = await client.query(`
+                SELECT
+                    zp_id,
+                    COUNT(*) AS count
+                FROM
+                    ${table_name}_notes_zp
+                GROUP BY
+                    zp_id;
+            `);
+            console.log(count.rows);
+
+            return count.rows;
         } finally { client.release(); }
     }
 
@@ -162,7 +183,7 @@ export class ProductModel {
             }
             return { msg: 'Row inserted successfully', id: prodId }; //успешное добавление, возвращается id новой записи
         } catch (err) {
-            console.error('Error executing query', err.stack);
+            console.error('Error executing query', err.stack); // err.stack - трассировка стека вызовов чтобы отследить где происходит ошибка
             res.status(500).send('Internal Server Error');
         } finally { client.release(); }
     }
@@ -182,8 +203,8 @@ export class ProductModel {
             const zpId = result.rows[0].id;
             return { msg: 'Row inserted successfully', id: zpId }; //успешное добавление, возвращается id новой записи
         } catch (err) {
-            console.error('Error executing query', err.stack);
-            res.status(500).send('Internal Server Error');
+            console.error('Error executing query', err.stack); // err.stack - трассировка стека вызовов чтобы отследить где происходит ошибка
+            return err.detail; //возвращает сообщение c описанием об ошибке
         } finally { client.release(); }
     }
 
@@ -202,7 +223,7 @@ export class ProductModel {
             const noteId = result.rows[0].id;
             return { msg: 'Row inserted successfully', id: noteId }; //успешное добавление, возвращается id новой записи
         } catch (err) {
-            console.error('Error executing query', err.stack);
+            console.error('Error executing query', err.stack); // err.stack - трассировка стека вызовов чтобы отследить где происходит ошибка
             res.status(500).send('Internal Server Error');
         } finally { client.release(); }
     }
@@ -248,10 +269,11 @@ export class ProductModel {
                     ${table_name}_zp
                 SET  -- набор данных подлежащих обновлению
                     id = $1, -- новый id
-                    zp_name = $2
+                    zp_name = $2,
+                    archive = $3
                 WHERE  -- обновление применяется только к 1 ЖП
-                    id = $3 -- старый id
-            `, [zpData.id, zpData.zp_name, id]);
+                    id = $4 -- старый id
+            `, [zpData.id, zpData.zp_name, zpData.archive, id]);
             return { msg: 'Row updated successfully', id: id };
         } finally { client.release(); }
     }
@@ -271,10 +293,11 @@ export class ProductModel {
                     response = $6,
                     response_note = $7,
                     response_date = $8,
-                    archive = $9
+                    archive = $9,
+                    ii_cd = $10
                 WHERE  -- обновление применяется только к 1 записи в ЖП
-                    id = $10
-            `, [noteData.note_zp_id, noteData.name_note, noteData.note, noteData.owner_note, noteData.owner_date, noteData.response, noteData.response_note, noteData.response_date, noteData.archive, noteId]);
+                    id = $11
+            `, [noteData.note_zp_id, noteData.name_note, noteData.note, noteData.owner_note, noteData.owner_date, noteData.response, noteData.response_note, noteData.response_date, noteData.archive, noteData.ii_cd, noteId]);
             return { msg: 'Row updated successfully', id: noteId };
         } finally { client.release(); }
     }

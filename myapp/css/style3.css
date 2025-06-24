@@ -19,11 +19,27 @@ p {
     border: 5px solid transparent;
 }
 
+/* Чекбоксы для фитров отображения архивных и погашенных */
+.checkbox-container {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 15px;
+    bottom: 140px;
+    right: 20px;
+}
+
+.checkbox-container label {
+    cursor: pointer;
+}
+
 /* Стили для кнопки возврата в список ЖП */
 #back-btn {
     position: fixed;
     /* Фиксируем положение кнопки */
-    bottom: 140px;
+    bottom: 80px;
     /* Расстояние от нижнего края окна */
     right: 20px;
     /* Расстояние от правого края окна */
@@ -46,14 +62,14 @@ p {
 #auth-btn {
     position: fixed;
     /* Фиксируем положение кнопки */
-    bottom: 80px;
+    top: 20px;
     /* Расстояние от нижнего края окна */
     right: 20px;
     /* Расстояние от правого края окна */
     padding: 15px 25px;
     border: none;
     border-radius: 5px;
-    background-color: #007bff;
+    background-color: red;
     color: white;
     cursor: pointer;
     z-index: 1000;
@@ -62,7 +78,7 @@ p {
 }
 
 #auth-btn:hover {
-    background-color: #0056b3;
+    background-color: rgb(150, 0, 0);
 }
 
 /* Стили для кнопки "New" */
@@ -148,9 +164,39 @@ p {
     background-color: #bfd3f7;
 }
 
-/* Подсветка архивированной строки */
-.highlight-archiv {
-    color: gray;
+/* Подсветка неархивной записи */
+.highlight-not-archive {
+    font-weight: bold;
+}
+
+/* Подсветка архивированной записи (иконка архива) */
+tr.highlight-archive td:last-child {
+    position: relative;
+    padding-bottom: 30px;
+    /* Место для иконки */
+}
+
+tr.highlight-archive td:last-child::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 5px;
+    background-image: url("/frontend/icons/check.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.highlight-ii-cd {
+    color: grey;
+    text-decoration: line-through;
+}
+
+.highlight-ii-cd td:nth-child(5) {
+    text-decoration: none;
 }
 
 /* Модальное окно для формы */
@@ -241,7 +287,7 @@ p {
         margin: 1cm 1cm 1cm 2cm;
     }
 
-    /* Отключаем кнопки для отображения при печати *
+    /* Отключаем кнопки для отображения при печати */
     #back-btn,
     #new-btn,
     #toggle-doc-btn,
@@ -249,9 +295,19 @@ p {
         display: none !important;
     }
 
-    /* Отключаем стиль подсветки архивированной строки при печати */
-    .highlight-archiv {
-        color: inherit !important;
+    /* Отключаем иконку подсветки архивированной строки при печати */
+    .highlight-archive::after {
+        display: none !important;
     }
 
+    /* Убираем отступ для иконки архивированной записи */
+    .highlight-archive {
+        padding-bottom: 5px !important;
+        /* Место для иконки */
+    }
+
+    /* Убираем серый цвет при печати*/
+    .highlight-ii-cd {
+        color: transparent !important;
+    }
 }

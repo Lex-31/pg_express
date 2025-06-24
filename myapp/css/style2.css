@@ -27,14 +27,15 @@ p {
 #auth-btn {
     position: fixed;
     /* Фиксируем положение кнопки */
-    bottom: 80px;
+    /* bottom: 80px; */
+    top: 20px;
     /* Расстояние от нижнего края окна */
     right: 20px;
     /* Расстояние от правого края окна */
     padding: 15px 25px;
     border: none;
     border-radius: 5px;
-    background-color: #007bff;
+    background-color: red;
     color: white;
     cursor: pointer;
     z-index: 1000;
@@ -43,7 +44,7 @@ p {
 }
 
 #auth-btn:hover {
-    background-color: #0056b3;
+    background-color: rgb(150, 0, 0);
 }
 
 /* Стили для кнопки "New" */
@@ -105,7 +106,7 @@ p {
 .table td {
     padding: 5px;
     border: 1px solid;
-    text-align: left;
+    text-align: center;
     overflow: hidden;
     white-space: wrap;
 }
@@ -113,11 +114,15 @@ p {
 .table th {
     font-weight: bold;
     background: #dddddd;
-    text-align: center;
+}
+
+.table tr td:nth-child(2) {
+    /* для строк наименований */
+    text-align: left;
 }
 
 /* Фиксированные размеры столбцов */
-.table th:nth-child(1),
+/* .table th:nth-child(1),
 .table td:nth-child(1) {
     width: 50%;
 }
@@ -125,7 +130,7 @@ p {
 .table th:nth-child(2),
 .table td:nth-child(2) {
     width: 50%;
-}
+} */
 
 
 .table tbody tr:nth-child(odd) {
@@ -253,6 +258,29 @@ ul {
     background-color: #3bbb00;
 }
 
+/* Подсветка архивированной записи (иконка архива) */
+.table .highlight-archive {
+    position: relative;
+    /* padding-bottom: 30px; */
+    /* Место для иконки */
+    padding-right: 35px;
+}
+
+.highlight-archive::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    /* left: 50%; */
+    /* transform: translateX(-50%); */
+    bottom: 3px;
+    right: 10px;
+    background-image: url("/frontend/icons/check.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
 /* Стили для модального окна */
 .modal {
     display: none;
@@ -337,4 +365,14 @@ ul {
         display: none !important;
     }
 
+    /* Отключаем иконку подсветки архивированной строки при печати */
+    .highlight-archive::after {
+        display: none !important;
+    }
+
+    /* Убираем отступ для иконки архивированной записи */
+    .highlight-archive {
+        padding-bottom: 5px !important;
+        /* Место для иконки */
+    }
 }

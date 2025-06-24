@@ -1,18 +1,14 @@
 import { DataManager } from './dataManager.js';
-//Для ЖП
+//Для записей ЖП
 
+//получаем id текущего ЖП из URL
 function getZpIdFromPath() {
     // Получаем текущий путь URL
     const path = window.location.pathname;
-
     // Разделяем путь на части
     const pathParts = path.split('/');
-
     // Ищем и возвращаем ID, который должен быть последней частью пути
     const id = pathParts[pathParts.length - 1];
-
-    console.log(`ID ЖП из URL: ${id}`);
-
     return id;
 }
 
@@ -75,7 +71,7 @@ async function loadNotesData(id) {  //загрузка всех записей �
         const notes = await DataManager.fetchNotesZp(id); // GET запрос на получение всех записей из ЖП == id
         console.log(`data notes: ${JSON.stringify(notes)}`);
         /*
-data notes: {"id":18,"zp_name":"ЗФ 220","json_agg":[{"id":1,"note_zp_id":1,"name_note":"ЕИУС.436600.040.015 Наклейка","note":"Файл наклейки не соответсвует графике чертежа","owner_note":"Сердюк Л.В.","owner_date":"2015-08-20","response":"Наклейку заказывать по файлу \"ЕИУС.436600.040.015 изм. 1ю cdr\" КД будет откорректирована установленном порядке","response_note":"Сердюк Л.В.","response_date":"2015-08-26","archive":true}]}
+data notes: {"id":18,"zp_name":"ЗФ 220", "archive":false, "json_agg":[{"id":1,"note_zp_id":1,"name_note":"ЕИУС.436600.040.015 Наклейка","note":"Файл наклейки не соответсвует графике чертежа","owner_note":"Сердюк Л.В.","owner_date":"2015-08-20","response":"Наклейку заказывать по файлу \"ЕИУС.436600.040.015 изм. 1ю cdr\" КД будет откорректирована установленном порядке","response_note":"Сердюк Л.В.","response_date":"2015-08-26","archive":true}]}
         */
         document.title = `Журнал предложений № ${notes.id || 'Неизвестный ID'} - ${notes.zp_name || 'Неизвестное название'}`; //установка заголовка страницы
 
@@ -86,14 +82,13 @@ data notes: {"id":18,"zp_name":"ЗФ 220","json_agg":[{"id":1,"note_zp_id":1,"na
         document.getElementById('zp_name').textContent = zpNameHeader;
 
         //Навешивание события двойного клика для редактирования ЖП
-        if (localStorage.getItem('username') === 'admin') {  //security если пользователь - admin
+        if (localStorage.getItem('username') === 'admin' && notes.archive === false) {  //security если пользователь - admin
             const firstRow = document.querySelector('.table thead tr:first-child'); //получаем первую строку заголовка
             const secondRow = document.querySelector('.table thead tr:nth-child(2)'); //получаем вторую строку заголовка
 
             function handleDoubleClick() { // Функция, которая будет выполняться при двойном клике
-                // tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши по второй строке заголовка таблицы tr - открытие формы редактирования ЖП
                 console.log('Двойной клик на заголовке таблицы', notes.id, notes.zp_name);
-                openEditZpForm(notes.id, notes.zp_name); //открытие формы редактирования ЖП
+                openEditZpForm(notes); //открытие формы редактирования ЖП
             }
             firstRow.addEventListener('dblclick', handleDoubleClick); // двойной клик левой кнопкой мыши по первой строке заголовка
             secondRow.addEventListener('dblclick', handleDoubleClick); // двойной клик левой кнопкой мыши по второй строке заголовка
@@ -102,7 +97,7 @@ data notes: {"id":18,"zp_name":"ЗФ 220","json_agg":[{"id":1,"note_zp_id":1,"na
         const tableBody = document.getElementById('table-body');
         tableBody.innerHTML = ''; //очистка записей ЖП
 
-        if (!notes || notes.length === 0) {  //если нет записей в этом ЖП, нет смысла отображать записи
+        if (!notes || !notes.json_agg) {  //если нет записей в этом ЖП, нет смысла отображать записи
             console.error('Нет данных для отображения');
             return;
         }
@@ -119,9 +114,16 @@ data notes: {"id":18,"zp_name":"ЗФ 220","json_agg":[{"id":1,"note_zp_id":1,"na
                 <td>${note.response_note || ''}<br>${note.response_date || ''}</td>
             `;
 
-            // Подсвечиваем архивные записи
-            if (note.archive === true) {
-                noteRow.classList.add('highlight-archiv');
+            // если note.archive - true(запись архивирована), то добавляем класс highlight-archive для подсветки строки
+            if (note.archive) {
+                noteRow.classList.add('highlight-archive');
+            } else {
+                noteRow.classList.add('highlight-not-archive');
+            }
+
+            //подсветка строки записи в ЖП, если есть II_CD Изменение в КД (погашена)
+            if (note.ii_cd != '') {
+                noteRow.classList.add('highlight-ii-cd');
             }
 
             //навешивание события двойного клика для редактирования строки записи в ЖП
@@ -145,15 +147,46 @@ data notes: {"id":18,"zp_name":"ЗФ 220","json_agg":[{"id":1,"note_zp_id":1,"na
             }
             tableBody.append(noteRow);
         });
+
+        //состояние фильтров
+        // const checkArchive = document.getElementById('check_archive');  // Получаем чекбоксы
+        const checkIiCd = document.getElementById('check_ii_cd');
+
+        // checkArchive.checked = localStorage.getItem('check_archive') === 'false' ? false : true;  // Восстанавливаем состояние чекбоксов из localStorage. По умолчанию true
+        checkIiCd.checked = localStorage.getItem('check_ii_cd') === 'false' ? false : true;
+
+        function updateVisibility() { // Функция для обновления видимости строк таблицы
+            // const archiveRows = document.querySelectorAll('.highlight-archive');
+            const iiCdRows = document.querySelectorAll('.highlight-ii-cd');
+            // archiveRows.forEach(row => {
+            //     row.style.display = checkArchive.checked ? 'table-row' : 'none'; //если есть галочка - отображаем, иначе none
+            // });
+            iiCdRows.forEach(row => { //обновляем строки таблицы
+                row.style.display = checkIiCd.checked ? 'table-row' : 'none'; //если есть галочка - отображаем, иначе none
+            });
+        }
+
+        // checkArchive.addEventListener('change', function () { // Добавляем обработчики событий для сохранения состояния чекбоксов
+        //     localStorage.setItem('check_archive', this.checked);
+        //     updateVisibility();
+        // });
+        checkIiCd.addEventListener('change', function () {
+            localStorage.setItem('check_ii_cd', this.checked);
+            updateVisibility();
+        });
+
+        updateVisibility(); // Вызываем функцию обновления видимости строк при загрузке страницы
+
     } catch (error) { console.error('Ошибка при загрузке данных:', error); }
 }
 
-function openEditZpForm(id, zp_name) { //открытие формы редактирования ЖП
-    document.getElementById('new-id').value = id; //заполняем поля формы данными текущего ЖП
-    document.getElementById('new-zp_name').value = zp_name;
+function openEditZpForm(notes) { //открытие формы редактирования ЖП
+    document.getElementById('new-id').value = notes.id; //заполняем поля формы данными текущего ЖП
+    document.getElementById('new-zp_name').value = notes.zp_name;
+    document.getElementById('zp-archive').checked = notes.archive;
 
-    document.getElementById('zp-submit-btn').onclick = () => { updateZp(id); }; //навешиваем событие на кнопку "Обновить" - обновление данных ЖП
-    document.getElementById('zp-delete-btn').onclick = () => { deleteZp(id); }; //навешиваем событие на кнопку "Удалить" - удаление ЖП
+    document.getElementById('zp-submit-btn').onclick = () => { updateZp(notes.id); }; //навешиваем событие на кнопку "Обновить" - обновление данных ЖП
+    document.getElementById('zp-delete-btn').onclick = () => { deleteZp(notes.id); }; //навешиваем событие на кнопку "Удалить" - удаление ЖП
     document.getElementById('edit-zp-container').style.display = 'block';
     document.querySelector('.modal-backdrop').style.display = 'block';
 
@@ -185,10 +218,13 @@ function openEditNoteZpForm(note, group) { //открытие формы ред�
     document.getElementById('new-response_note').value = note.response_note; //Фамилия, подпись автора(ов) принятого решения
     document.getElementById('new-response_date').value = note.response_date; //дата принятого решения
 
+    document.getElementById('new-ii_cd').value = note.ii_cd;
+
     if (group === 'group1') { //если редактируем первые 4 столбца
         document.getElementById('new-response').parentElement.style.display = 'none';
         document.getElementById('new-response_note').parentElement.style.display = 'none';
         document.getElementById('new-response_date').parentElement.style.display = 'none';
+        document.getElementById('new-archive').parentElement.style.display = 'none';
     } else if (group === 'group2') { //если редактируем последние 2 столбца
         document.getElementById('new-note_zp_id').parentElement.style.display = 'none';
         document.getElementById('new-name_note').parentElement.style.display = 'none';
@@ -213,15 +249,20 @@ function openEditNoteZpForm(note, group) { //открытие формы ред�
         document.getElementById('new-note').parentElement.style.display = 'flex';
         document.getElementById('new-owner_note').parentElement.style.display = 'flex';
         document.getElementById('new-owner_date').parentElement.style.display = 'flex';
+        document.getElementById('new-archive').parentElement.style.display = 'block';
         document.getElementById('form-delete-btn').style.display = 'block';
     });
 }
 
 async function updateZp(id) { //обновление данных ЖП (id и zp_name) в таблице ЖП stalenergo_zp
     const username = localStorage.getItem('username') || 'anonymous'; // Извлечение имени пользователя
+
+    const statusArchive = document.getElementById('zp-archive').checked //проверка состояния галочки "архивировать"
+
     const data = { //данные из формы для обновления ЖП
         id: document.getElementById('new-id').value,  //получаем новое значение id из формы
-        zp_name: document.getElementById('new-zp_name').value //получаем новое значение zp_name из формы
+        zp_name: document.getElementById('new-zp_name').value, //получаем новое значение zp_name из формы
+        archive: statusArchive //архивация ЖП
     };
     const response = await DataManager.updateZp(id, data, username); // Отправляем PUT запрос на сервер для обновления записи (id -старый id, data - новые данные)
     console.log('response', response);
@@ -232,6 +273,12 @@ async function updateZp(id) { //обновление данных ЖП (id и zp
 async function updateNoteZp(id) {  //обновление записи в ЖП по id записи
     const username = localStorage.getItem('username') || 'anonymous'; // Извлечение имени пользователя
 
+    let statusArchive = document.getElementById('new-archive').checked; //проверка состояния галочки "архивировать"
+    const docIiCd = document.getElementById('new-ii_cd').value; //номер извещения об изменении КД
+    if (docIiCd != '') { //если номер извещения об изменении КД не пустой, то запись Утвержденная
+        statusArchive = true;
+    }
+
     const data = { //забираем данные из формы для обновления записи в ЖП
         note_zp_id: document.getElementById('new-note_zp_id').value, //№ п/п
         name_note: document.getElementById('new-name_note').value, //Наименование узла (детали), обозначение
@@ -241,7 +288,8 @@ async function updateNoteZp(id) {  //обновление записи в ЖП �
         response: document.getElementById('new-response').value, //Ответ на замечание (предложение)
         response_note: document.getElementById('new-response_note').value, //Фамилия, подпись автора(ов) принятого решения
         response_date: document.getElementById('new-response_date').value || null, //дата принятого решения
-        archive: document.getElementById('new-archive').value //архивация записи
+        archive: statusArchive, //архивация записи
+        ii_cd: docIiCd //номер извещения об изменении КД
     };
 
     const response = await DataManager.updateNoteZp(id, data, username); // Отправляем PUT запрос на сервер для обновления записи (id - идентификатор записи в таблице stalenergo_notes_zp)
@@ -299,14 +347,14 @@ async function createRow() { //Отправляет POST запрос на се�
 document.addEventListener('DOMContentLoaded', () => {
     // Проверка состояния авторизации при загрузке страницы
     const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (isAuthenticated) {
-        document.getElementById('auth-btn').textContent = 'Выход';
-        document.getElementById('new-btn').style.display = 'block';
+    if (isAuthenticated) { //если авторизирован
+        document.getElementById('auth-btn').textContent = 'Выход'; //меняем текст кнопки для выхода 
+        document.getElementById('new-btn').style.display = 'block'; //показываем кнопку "Новая запись"
     }
 
     const zpId = getZpIdFromPath(); //получаем id текущего ЖП из URL
     if (zpId) {
-        loadNotesData(zpId);  //загрузка всех записей из ЖП по id ЖП
+        loadNotesData(zpId);  //загрузка всех записей из ЖП по id ЖП при загрузке страницы
     } else {
         console.error('ID журнала предложений не найден в URL');
     }
@@ -359,7 +407,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Навешивание событий на элементы управления (конпку создания новой записи и закрытия формы создания) 
     //открывает форму при создании новой записи в ЖП
-    document.getElementById('new-btn').addEventListener('click', () => {
+    document.getElementById('new-btn').addEventListener('click', async () => {
+        const zpId = document.getElementById('zp_id').textContent; //получаем id текущего ЖП
+        const notes = await DataManager.fetchNotesZp(zpId); // GET запрос на получение всех записей из ЖП == zpId
+        let currentNote;  //номер текущей записи в ЖП
+        if (notes.json_agg) { //если записи есть
+            const lastNote = notes.json_agg[notes.json_agg.length - 1]; // Получаем последний элемент массива записей в рамках 1 ЖП
+            currentNote = lastNote.note_zp_id + 1;  //увеличиваем номер п/п
+        }
+
+        document.getElementById('new-note_zp_id').value = currentNote || 1; //номер текущей записи, а если записей нет то будет первая
+
         document.getElementById('new-form-container').style.display = 'block';
         document.querySelector('.modal-backdrop').style.display = 'block';
         document.getElementById('form-submit-btn').textContent = 'Создать';
@@ -373,6 +431,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('form-submit-btn').onclick = createRow; //отправлет POST запрос создания нового ЖП
     });
+
+
+
 
     //закрытие формы создания новой записи в ЖП
     document.getElementById('form-close-btn').addEventListener('click', () => {

@@ -5,9 +5,10 @@ const logger = new Logger();
 
 /** Класс для обработки запросов, связанных с продуктами.
  * @method getAllProducts - Получение всех продуктов.
- * @method getAllZp - Получение всех ЖП.
  * @method getProductById - Получение продукта по ID.
+ * @method getAllZp - Получение всех ЖП.
  * @method getNotesZp - Получение записей в ЖП по ID.
+ * @method getCountNotesInZp - Получение количества записей в ЖП.
  * @method createProduct - Создание нового продукта.
  * @method createZp - Создание нового ЖП.
  * @method createNoteZp - Создание новой записи в ЖП.
@@ -28,16 +29,6 @@ export class ProductController {
         }
     }
 
-    static async getAllZp(req, res) {  //получение всех записей из таблицы ЖП
-        try {
-            const zp = await ProductModel.getAllZp();
-            res.json(zp);
-        } catch (error) {
-            console.error('Error executing query', error.stack);
-            res.status(500).send('Internal Server Error');
-        }
-    }
-
     static async getProductById(req, res) {  //получение записи по id
         const { id } = req.params;
         try {
@@ -52,6 +43,16 @@ export class ProductController {
         }
     }
 
+    static async getAllZp(req, res) {  //получение всех записей из таблицы ЖП
+        try {
+            const zp = await ProductModel.getAllZp();
+            res.json(zp);
+        } catch (error) {
+            console.error('Error executing query', error.stack);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
     static async getNotesZp(req, res) {  //получение всех записей в ЖП по id ЖП
         const { id } = req.params; //ID ЖП
         try {
@@ -60,6 +61,16 @@ export class ProductController {
                 return res.status(404).send('Product not found');
             }
             res.json(zpNotes);
+        } catch (error) {
+            console.error('Error executing query', error.stack);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    static async getCountNotesInZp(req, res) {  //получение кол-ва записей в ЖП
+        try {
+            const count = await ProductModel.getCountNotesInZp();
+            res.json(count);
         } catch (error) {
             console.error('Error executing query', error.stack);
             res.status(500).send('Internal Server Error');

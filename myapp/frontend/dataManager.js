@@ -45,6 +45,10 @@ export class DataManager {
         return this.fetchData(`http://${serverUrl}/api/zp/${id}`);
     }
 
+    static async fetchCountNotesInZp() {  // GET запрос на получение количества записей в ЖП
+        return this.fetchData(`http://${serverUrl}/api/zpCount`);
+    }
+
     static async updateProduct(id, data, username) {  // PUT запрос на обновление изделия
         const response = await fetch(`http://${serverUrl}/api/main/${id}`, {
             method: 'PUT',
