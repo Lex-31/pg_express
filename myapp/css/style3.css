@@ -201,7 +201,8 @@ tr.highlight-archive td:last-child::after {
 
 /* Модальное окно для формы */
 #new-form-container,
-#edit-zp-container {
+#edit-zp-container,
+#auth-form-container {
     position: fixed;
     /* Фиксируем положение окна */
     top: 50%;
@@ -222,14 +223,16 @@ tr.highlight-archive td:last-child::after {
 
 /* Стили для полей формы */
 #new-form label,
-#edit-zp label {
+#edit-zp label,
+#auth-form label {
     display: flex;
     flex-direction: column;
     margin-bottom: 15px;
 }
 
 #new-form input,
-#edit-zp input {
+#edit-zp input,
+#auth-form input {
     padding: 8px;
     margin-top: 5px;
     border: 1px solid #ccc;
@@ -243,7 +246,8 @@ tr.highlight-archive td:last-child::after {
 }
 
 #new-form button,
-#edit-zp button {
+#edit-zp button,
+#auth-form button {
     padding: 10px 20px;
     margin-top: 10px;
     border: none;
@@ -254,7 +258,8 @@ tr.highlight-archive td:last-child::after {
 }
 
 #new-form button:hover,
-#edit-zp button:hover {
+#edit-zp button:hover,
+#auth-form button:hover {
     background-color: #0056b3;
 }
 

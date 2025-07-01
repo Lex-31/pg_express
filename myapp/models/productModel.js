@@ -91,8 +91,7 @@ export class ProductModel {
             const zp = await client.query(`
                 SELECT
                     zp.id,
-                    zp.zp_name,
-                    zp.archive
+                    zp.zp_name
                 FROM
                     ${table_name}_zp zp
                 ORDER BY
@@ -109,7 +108,6 @@ export class ProductModel {
                 SELECT
                     stalenergo_zp.id,
                     stalenergo_zp.zp_name,
-                    stalenergo_zp.archive,
                     (
                         SELECT json_agg(
                             json_build_object(
@@ -148,7 +146,9 @@ export class ProductModel {
             const count = await client.query(`
                 SELECT
                     zp_id,
-                    COUNT(*) AS count
+                    COUNT(*) AS count,
+                    SUM(CASE WHEN ii_cd != '' THEN 1 ELSE 0 END) AS with_ii_cd,
+                    SUM(CASE WHEN response_note = '' THEN 1 ELSE 0 END) AS unsigned
                 FROM
                     ${table_name}_notes_zp
                 GROUP BY
@@ -269,11 +269,10 @@ export class ProductModel {
                     ${table_name}_zp
                 SET  -- набор данных подлежащих обновлению
                     id = $1, -- новый id
-                    zp_name = $2,
-                    archive = $3
+                    zp_name = $2
                 WHERE  -- обновление применяется только к 1 ЖП
-                    id = $4 -- старый id
-            `, [zpData.id, zpData.zp_name, zpData.archive, id]);
+                    id = $3 -- старый id
+            `, [zpData.id, zpData.zp_name, id]);
             return { msg: 'Row updated successfully', id: id };
         } finally { client.release(); }
     }

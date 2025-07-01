@@ -14,7 +14,7 @@
     <!-- форма авторизации -->
     <div class="auth-container">
         <button id="auth-btn">Авторизация</button>
-        <div id="auth-form-container" style="display: none;">
+        <div id="auth-form-container">
             <form id="auth-form">
                 <label>
                     Логин: <input type="text" id="auth-username" required>
@@ -22,7 +22,8 @@
                 <label>
                     Пароль: <input type="text" id="auth-password" required>
                 </label>
-                <button type="submit">Войти</button>
+                <button type="submit" id="auth-submit-btn">Войти</button>
+                <button type="button" id="auth-close-btn">Отмена</button>
             </form>
         </div>
     </div>
@@ -113,7 +114,7 @@
         <form id="edit-zp">
             <label>№ альбома в архиве ОГТ: <input type="number" id="new-id" required> </label>
             <label>Наименование журнала: <input type="text" id="new-zp_name" required> </label>
-            <label style="display: block;">Утвержденная запись: <input type="checkbox" id="zp-archive"></label>
+            <!-- <label style="display: block;">Утвержденная запись: <input type="checkbox" id="zp-archive"></label> -->
 
             <div class="buttons">
                 <button type="button" id="zp-submit-btn">Обновить</button>

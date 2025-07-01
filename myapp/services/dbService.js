@@ -41,8 +41,7 @@ export class DbService {
             await client.query(`
             CREATE TABLE IF NOT EXISTS ${table_name}_zp (
                 id SERIAL PRIMARY KEY NOT NULL, --номер альбома в архиве ОГП
-                zp_name VARCHAR(100), --наименование альбома
-                archive BOOLEAN DEFAULT false --признак архивности
+                zp_name VARCHAR(100) --наименование альбома
             );
             `);
             await client.query(`
@@ -416,8 +415,7 @@ export class DbService {
                     name: `${table_name}_zp`,
                     columns: [
                         { name: 'id', type: 'integer', nullable: false },
-                        { name: 'zp_name', type: 'character varying', nullable: true },
-                        { name: 'archive', type: 'boolean', nullable: true }
+                        { name: 'zp_name', type: 'character varying', nullable: true }
                     ]
                 },
                 {

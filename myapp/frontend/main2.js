@@ -45,12 +45,30 @@ async function checkCredentials(username, password) {
 
 async function loadData() { //GET запрос загружает данные из сервера и обновляет таблицу
     const countArr = await DataManager.fetchCountNotesInZp(); // GET запрос на получение количества записей в ЖП
-    /* [ { zp_id: 82, count: '2' }, { zp_id: 18, count: '4' } ] */
+    /* [ {zp_id: 82, count: '2', with_ii_cd: '0', unsigned: '1'}, {zp_id: 18, count: '4', with_ii_cd: '2', unsigned: '1'} ] */
+    console.log(countArr);
+
     const countNotesInZp = countArr.reduce((acc, item) => {  // Преобразуем массив в нужный объект
         acc[item.zp_id] = parseInt(item.count, 10); // Преобразуем строку в число для count
         return acc;
     }, {});
     /* {18: 4, 82: 2} */
+    console.log(countNotesInZp);
+
+    const whith_ii_NotesInZp = countArr.reduce((acc, item) => {  // Преобразуем массив в нужный объект
+        acc[item.zp_id] = parseInt(item.with_ii_cd, 10); // Преобразуем строку в число для with_ii_cd
+        return acc;
+    }, {});
+    /* {18: 2, 82: 0} */
+    console.log(whith_ii_NotesInZp);
+
+    const unsigned_NotesInZp = countArr.reduce((acc, item) => {  // Преобразуем массив в нужный объект
+        acc[item.zp_id] = parseInt(item.unsigned, 10); // Преобразуем строку в число для unsigned
+        return acc;
+    }, {});
+    /* {18: 1, 82: 1} */
+    console.log(unsigned_NotesInZp);
+
 
     const itemsZp = await DataManager.fetchItemsZp();  // Загрузка всех ЖП
     /* itemsZp:
@@ -63,8 +81,10 @@ async function loadData() { //GET запрос загружает данные �
         //вставляем html в строку таблицы
         itemZpRow.innerHTML = `
             <td>${itemZp.id}</td>
-            <td class="${itemZp.archive ? 'highlight-archive' : ''}">${itemZp.zp_name}</td>
+            <td>${itemZp.zp_name}</td>
             <td>${countNotesInZp[itemZp.id] || 0}</td>
+            <td>${whith_ii_NotesInZp[itemZp.id] || 0}</td>
+            <td>${unsigned_NotesInZp[itemZp.id] || 0}</td>
         `;
 
         itemZpRow.addEventListener('dblclick', () => { //вешаем собтие dblclick на строку таблицы
@@ -73,6 +93,8 @@ async function loadData() { //GET запрос загружает данные �
 
         tableBody.append(itemZpRow); //вставляем в строку таблицы ячейки
     });
+
+    sortZp(); //сортировка по счетчикам записей после заполнения таблицы строками
 }
 
 async function createRow() { //Отправляет POST запрос на сервер для создания нового ЖП
@@ -93,6 +115,113 @@ async function createRow() { //Отправляет POST запрос на се�
     loadData();
 }
 
+function sortZp() { //сортировка ЖП по 3 столбцам
+    const headers = {
+        'notes-total': { element: document.getElementById('notes-total'), order: null },
+        'notes-closed': { element: document.getElementById('notes-closed'), order: null },
+        'notes-unsigned': { element: document.getElementById('notes-unsigned'), order: null }
+    };
+
+    Object.keys(headers).forEach(key => { // Восстанавливаем состояние сортировки из localStorage
+        const savedOrder = localStorage.getItem(key);
+        if (savedOrder) {
+            headers[key].order = savedOrder;
+            updateHeaderUI(headers[key]);
+        }
+    });
+
+    Object.keys(headers).forEach(key => {  // Добавляем обработчики событий для заголовков
+        headers[key].element.addEventListener('click', () => {
+            toggleSortOrder(key);
+            window.location.reload();  // Обновляем страницу после изменения состояния сортировки
+        });
+    });
+
+    function toggleSortOrder(headerId) {  //переключает порядок сортировки для выбранного заголовка и сбрасывает порядок сортировки для других заголовков
+        Object.keys(headers).forEach(key => {  // Сбрасываем порядок сортировки для всех заголовков
+            if (key !== headerId) {
+                headers[key].order = null;
+                localStorage.removeItem(key);
+                updateHeaderUI(headers[key]);
+            }
+        });
+
+        // Переключаем порядок сортировки для выбранного заголовка
+        const header = headers[headerId];
+        if (header.order === null) { //если не было сортировки
+            header.order = 'desc';  // устанавливаем порядок сортировки по убыванию
+        } else if (header.order === 'desc') {
+            header.order = 'asc';
+        } else {
+            header.order = null;
+        }
+
+        localStorage.setItem(headerId, header.order || ''); // Сохраняем состояние сортировки в localStorage
+    }
+
+    function updateHeaderUI(header) {  //обновляет UI заголовка, добавляя иконку сортировки в зависимости от текущего порядка
+        header.element.innerHTML = header.element.textContent.trim(); // Удаляем все иконки сортировки
+
+
+        if (header.order === 'asc') {  // Добавляем иконку сортировки в зависимости от порядка
+            header.element.innerHTML += ' ↑';
+        } else if (header.order === 'desc') {
+            header.element.innerHTML += ' ↓';
+        }
+    }
+
+    function sortTable() {
+        const tableBody = document.getElementById('table-body');
+        const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+        // Определяем, по какому столбцу сортировать
+        let headerId, order;
+        Object.keys(headers).forEach(key => {
+            if (headers[key].order) {
+                headerId = key;
+                order = headers[key].order;
+            }
+        });
+
+        if (!headerId) return; // Если сортировка не выбрана, выходим
+
+        // Определяем индекс колонки для сортировки
+        let columnIndex;
+        switch (headerId) {
+            case 'notes-total':
+                columnIndex = 2;
+                break;
+            case 'notes-closed':
+                columnIndex = 3;
+                break;
+            case 'notes-unsigned':
+                columnIndex = 4;
+                break;
+            default:
+                return;
+        }
+
+        // Сортируем строки
+        rows.sort((a, b) => {
+            const aValue = parseInt(a.cells[columnIndex].textContent, 10);
+            const bValue = parseInt(b.cells[columnIndex].textContent, 10);
+
+            if (order === 'asc') {
+                return aValue - bValue;
+            } else if (order === 'desc') {
+                return bValue - aValue;
+            } else {
+                return 0;
+            }
+        });
+
+        // Перерисовываем таблицу
+        tableBody.innerHTML = '';
+        rows.forEach(row => tableBody.appendChild(row));
+    }
+    sortTable();  // Вызываем функцию сортировки при загрузке страницы
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Проверка состояния авторизации при загрузке страницы
     const isAuthenticated = localStorage.getItem('isAuthenticated');
@@ -106,8 +235,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (authButton.textContent === 'Авторизация') {
             document.getElementById('auth-form-container').style.display = 'block';
         } else {
-            handleLogout();
+            handleLogout();  //разлогинивание
         }
+    });
+
+    document.getElementById('auth-close-btn').addEventListener('click', () => { //кнопка Отмена на форме авторизации
+        document.getElementById('auth-form-container').style.display = 'none';
     });
 
     document.getElementById('auth-form').addEventListener('submit', handleAuth);

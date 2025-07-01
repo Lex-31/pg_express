@@ -19,10 +19,6 @@ p {
     border: 5px solid transparent;
 }
 
-#auth-form-container {
-    position: fixed;
-}
-
 /* Стили для кнопки авторизации */
 #auth-btn {
     position: fixed;
@@ -121,6 +117,12 @@ p {
     text-align: left;
 }
 
+#notes-total,
+#notes-closed,
+#notes-unsigned {
+    cursor: pointer;
+}
+
 /* Фиксированные размеры столбцов */
 /* .table th:nth-child(1),
 .table td:nth-child(1) {
@@ -150,7 +152,8 @@ p {
 }
 
 /* Модальное окно для формы */
-#new-form-container {
+#new-form-container,
+#auth-form-container {
     position: fixed;
     /* Фиксируем положение окна */
     top: 50%;
@@ -170,26 +173,24 @@ p {
 }
 
 /* Стили для полей формы */
-#new-form label {
+#new-form label,
+#auth-form label {
     display: flex;
     flex-direction: column;
     margin-bottom: 15px;
 }
 
-#new-form label label {
+/* #new-form label label {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 10px;
     margin-bottom: 0;
     white-space: nowrap;
-}
+} */
 
-.dir-doc {
-    width: 100%;
-}
-
-#new-form input {
+#new-form input,
+#auth-form input {
     padding: 8px;
     margin-top: 5px;
     border: 1px solid #ccc;
@@ -198,10 +199,12 @@ p {
 
 .buttons {
     display: flex;
+    gap: 35px;
     justify-content: space-between;
 }
 
-#new-form button {
+#new-form button,
+#auth-form button {
     padding: 10px 20px;
     margin-top: 10px;
     border: none;
@@ -211,7 +214,8 @@ p {
     cursor: pointer;
 }
 
-#new-form button:hover {
+#new-form button:hover,
+#auth-form button:hover {
     background-color: #0056b3;
 }
 
@@ -256,29 +260,6 @@ ul {
 
 .context-menu-item:hover {
     background-color: #3bbb00;
-}
-
-/* Подсветка архивированной записи (иконка архива) */
-.table .highlight-archive {
-    position: relative;
-    /* padding-bottom: 30px; */
-    /* Место для иконки */
-    padding-right: 35px;
-}
-
-.highlight-archive::after {
-    content: "";
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    /* left: 50%; */
-    /* transform: translateX(-50%); */
-    bottom: 3px;
-    right: 10px;
-    background-image: url("/frontend/icons/check.svg");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
 }
 
 /* Стили для модального окна */
