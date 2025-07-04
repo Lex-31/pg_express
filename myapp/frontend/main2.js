@@ -1,73 +1,42 @@
 import { DataManager } from './dataManager.js';
+import {
+    handleAuth,
+    handleLogout,
+    initAuthStatus,
+    addAuthEventListeners
+} from './shared/auth.js';
+import {
+    openModal,
+    closeModal,
+    addCloseEventListeners
+} from './shared/modalUtils.js';
 //Для ЖП
-
-// Функция для обработки авторизации
-async function handleAuth(event) {
-    event.preventDefault();
-    const username = document.getElementById('auth-username').value;
-    const password = document.getElementById('auth-password').value;
-
-    // Здесь можно добавить логику проверки логина и пароля
-    // Например, отправить запрос на сервер для проверки учетных данных
-    const isAuthenticated = await checkCredentials(username, password);
-
-    if (isAuthenticated) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('username', username); // Сохраняем имя пользователя
-        document.getElementById('auth-btn').textContent = 'Выход';
-        document.getElementById('new-btn').style.display = 'block';
-        document.getElementById('auth-form-container').style.display = 'none';
-        loadData();
-    } else {
-        alert('Неверные учетные данные');
-    }
-}
-
-// Функция для обработки выхода
-function handleLogout() {
-    localStorage.removeItem('isAuthenticated');
-    document.getElementById('auth-btn').textContent = 'Авторизация';
-    document.getElementById('new-btn').style.display = 'none';
-    document.getElementById('auth-form-container').style.display = 'none';
-    location.reload(); // Перезагружаем страницу для сброса состояния
-}
-
-// Функция для проверки учетных данных (заглушка)
-async function checkCredentials(username, password) {
-    // Здесь можно добавить реальную проверку учетных данных
-    // Например, отправить запрос на сервер
-    if (username === 'admin' && password === '123') {
-        return true;
-    } else {
-        return false;
-    }
-}
 
 async function loadData() { //GET запрос загружает данные из сервера и обновляет таблицу
     const countArr = await DataManager.fetchCountNotesInZp(); // GET запрос на получение количества записей в ЖП
     /* [ {zp_id: 82, count: '2', with_ii_cd: '0', unsigned: '1'}, {zp_id: 18, count: '4', with_ii_cd: '2', unsigned: '1'} ] */
-    console.log(countArr);
+    // console.log(countArr);
 
     const countNotesInZp = countArr.reduce((acc, item) => {  // Преобразуем массив в нужный объект
         acc[item.zp_id] = parseInt(item.count, 10); // Преобразуем строку в число для count
         return acc;
     }, {});
     /* {18: 4, 82: 2} */
-    console.log(countNotesInZp);
+    // console.log(countNotesInZp);
 
     const whith_ii_NotesInZp = countArr.reduce((acc, item) => {  // Преобразуем массив в нужный объект
         acc[item.zp_id] = parseInt(item.with_ii_cd, 10); // Преобразуем строку в число для with_ii_cd
         return acc;
     }, {});
     /* {18: 2, 82: 0} */
-    console.log(whith_ii_NotesInZp);
+    // console.log(whith_ii_NotesInZp);
 
     const unsigned_NotesInZp = countArr.reduce((acc, item) => {  // Преобразуем массив в нужный объект
         acc[item.zp_id] = parseInt(item.unsigned, 10); // Преобразуем строку в число для unsigned
         return acc;
     }, {});
     /* {18: 1, 82: 1} */
-    console.log(unsigned_NotesInZp);
+    // console.log(unsigned_NotesInZp);
 
 
     const itemsZp = await DataManager.fetchItemsZp();  // Загрузка всех ЖП
@@ -112,6 +81,7 @@ async function createRow() { //Отправляет POST запрос на се�
     }
 
     document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
+    document.getElementById('new-form').reset();
     loadData();
 }
 
@@ -160,8 +130,14 @@ function sortZp() { //сортировка ЖП по 3 столбцам
     }
 
     function updateHeaderUI(header) {  //обновляет UI заголовка, добавляя иконку сортировки в зависимости от текущего порядка
-        header.element.innerHTML = header.element.textContent.trim(); // Удаляем все иконки сортировки
+        // header.element.innerHTML = header.element.textContent.trim(); // Удаляем все иконки сортировки
+        // Сохраняем оригинальное текстовое содержимое заголовка (если еще не сохранено)
+        if (!header.originalText) {
+            header.originalText = header.element.textContent.trim();
+        }
 
+        // Устанавливаем innerHTML обратно в оригинальный текст перед добавлением стрелочки
+        header.element.innerHTML = header.originalText;
 
         if (header.order === 'asc') {  // Добавляем иконку сортировки в зависимости от порядка
             header.element.innerHTML += ' ↑';
@@ -223,35 +199,18 @@ function sortZp() { //сортировка ЖП по 3 столбцам
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Проверка состояния авторизации при загрузке страницы
+    initAuthStatus();
+    addAuthEventListeners(); // Добавляем обработчики событий из shared/auth.js
+
     const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (isAuthenticated) {
-        document.getElementById('auth-btn').textContent = 'Выход';
-        document.getElementById('new-btn').style.display = 'block';
-    }
+    const newBtn = document.getElementById('new-btn');
+    if (isAuthenticated) { newBtn.style.display = 'block'; }
 
-    document.getElementById('auth-btn').addEventListener('click', () => { //событие открытия формы авторизации при нажатии на кнопку "Авторизация"
-        const authButton = document.getElementById('auth-btn');
-        if (authButton.textContent === 'Авторизация') {
-            document.getElementById('auth-form-container').style.display = 'block';
-        } else {
-            handleLogout();  //разлогинивание
-        }
-    });
-
-    document.getElementById('auth-close-btn').addEventListener('click', () => { //кнопка Отмена на форме авторизации
-        document.getElementById('auth-form-container').style.display = 'none';
-    });
-
-    document.getElementById('auth-form').addEventListener('submit', handleAuth);
-
-    loadData(); // Загрузка данных при загрузке страницы
 
     // Навешивание событий на элементы управления (конпку создания новой записи и закрытие формы новой записи)
     //открывает форму при создании нового ЖП
     document.getElementById('new-btn').addEventListener('click', async () => {
-        document.getElementById('new-form-container').style.display = 'block';
-        document.querySelector('.modal-backdrop').style.display = 'block';
+        openModal('new-form-container');
         document.getElementById('form-submit-btn').textContent = 'Создать';
         document.getElementById('form-submit-btn').onclick = createRow; //отправлет POST запрос создания нового ЖП
         document.getElementById('form-delete-btn').style.display = 'none';
@@ -260,11 +219,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     //закрытие формы
     document.getElementById('form-close-btn').addEventListener('click', () => {
-        document.getElementById('new-form-container').style.display = 'none';
-        document.querySelector('.modal-backdrop').style.display = 'none';
-        document.getElementById('new-form').reset();
+        closeModal('new-form-container');
         document.getElementById('form-submit-btn').textContent = 'Создать';
         document.getElementById('form-submit-btn').onclick = createRow;
         document.getElementById('form-delete-btn').style.display = 'block';
     });
+
+    loadData(); // Загрузка данных при загрузке страницы
+
+
+    addCloseEventListeners('new-form-container', '#form-close-btn', '.modal-backdrop');    // Навешиваем обработчики закрытия модального окна
 });

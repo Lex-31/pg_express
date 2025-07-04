@@ -1,4 +1,9 @@
 import { DataManager } from './dataManager.js';
+import {
+    handleAuth,
+    initAuthStatus,
+    addAuthEventListeners
+} from './shared/auth.js';
 //Для записей ЖП
 
 //получаем id текущего ЖП из URL
@@ -10,49 +15,6 @@ function getZpIdFromPath() {
     // Ищем и возвращаем ID, который должен быть последней частью пути
     const id = pathParts[pathParts.length - 1];
     return id;
-}
-
-// Функция для обработки авторизации
-async function handleAuth(event) {
-    event.preventDefault();
-    const username = document.getElementById('auth-username').value;
-    const password = document.getElementById('auth-password').value;
-
-    // Здесь можно добавить логику проверки логина и пароля
-    // Например, отправить запрос на сервер для проверки учетных данных
-    const isAuthenticated = await checkCredentials(username, password);
-
-    if (isAuthenticated) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('username', username); // Сохраняем имя пользователя
-        document.getElementById('auth-btn').textContent = 'Выход';
-        document.getElementById('new-btn').style.display = 'block';
-        document.getElementById('auth-form-container').style.display = 'none';
-        loadNotesData(getZpIdFromPath());
-    } else {
-        alert('Неверные учетные данные');
-    }
-}
-
-// Функция для обработки выхода
-function handleLogout() {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('username');
-    document.getElementById('auth-btn').textContent = 'Авторизация';
-    document.getElementById('new-btn').style.display = 'none';
-    document.getElementById('auth-form-container').style.display = 'none';
-    location.reload(); // Перезагружаем страницу для сброса состояния
-}
-
-// Функция для проверки учетных данных (заглушка)
-async function checkCredentials(username, password) {
-    // Здесь можно добавить реальную проверку учетных данных
-    // Например, отправить запрос на сервер
-    if (username === 'admin' && password === '123') {
-        return true;
-    } else {
-        return false;
-    }
 }
 
 async function loadNotesData(id) {  //загрузка всех записей из ЖП по id ЖП
@@ -343,25 +305,11 @@ async function createRow() { //Отправляет POST запрос на се�
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Проверка состояния авторизации при загрузке страницы
+    initAuthStatus();
+    addAuthEventListeners(); // Добавляем обработчики событий из shared/auth.js
+
     const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (isAuthenticated) { //если авторизирован
-        document.getElementById('auth-btn').textContent = 'Выход'; //меняем текст кнопки для выхода 
-        document.getElementById('new-btn').style.display = 'block'; //показываем кнопку "Новая запись"
-    }
-
-    document.getElementById('auth-btn').addEventListener('click', () => { //событие открытия формы авторизации при нажатии на кнопку "Авторизация"
-        const authButton = document.getElementById('auth-btn');
-        if (authButton.textContent === 'Авторизация') {
-            document.getElementById('auth-form-container').style.display = 'block';
-        } else {
-            handleLogout();  //разлогинивание
-        }
-    });
-
-    document.getElementById('auth-close-btn').addEventListener('click', () => { //кнопка Отмена на форме авторизации
-        document.getElementById('auth-form-container').style.display = 'none';
-    });
+    if (isAuthenticated) { document.getElementById('new-btn').style.display = 'block'; }
 
     document.getElementById('auth-form').addEventListener('submit', handleAuth);
 

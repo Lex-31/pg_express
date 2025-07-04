@@ -1,70 +1,70 @@
 import { DataManager } from './dataManager.js';
-import { EventManager } from './eventManager.js';
 import { serverUrl } from './config.js';
-
-// Функция для обработки авторизации
-async function handleAuth(event) {
-    event.preventDefault();
-    const username = document.getElementById('auth-username').value;
-    const password = document.getElementById('auth-password').value;
-
-    // Здесь можно добавить логику проверки логина и пароля
-    // Например, отправить запрос на сервер для проверки учетных данных
-    const isAuthenticated = await checkCredentials(username, password);
-
-    if (isAuthenticated) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('username', username); // Сохраняем имя пользователя
-        document.getElementById('auth-btn').textContent = 'Выход';
-        document.getElementById('new-btn').style.display = 'block';
-        document.getElementById('auth-form-container').style.display = 'none';
-        loadData();
-    } else {
-        alert('Неверные учетные данные');
-    }
-}
-
-// Функция для обработки выхода
-function handleLogout() {
-    localStorage.removeItem('isAuthenticated');
-    document.getElementById('auth-btn').textContent = 'Авторизация';
-    document.getElementById('new-btn').style.display = 'none';
-    document.getElementById('auth-form-container').style.display = 'none';
-    location.reload(); // Перезагружаем страницу для сброса состояния
-}
-
-// Функция для проверки учетных данных (заглушка)
-async function checkCredentials(username, password) {
-    // Здесь можно добавить реальную проверку учетных данных
-    // Например, отправить запрос на сервер
-    if (username === 'admin' && password === '123') {
-        return true;
-    } else {
-        return false;
-    }
-}
+import {
+    handleAuth,
+    initAuthStatus,
+    addAuthEventListeners
+} from './shared/auth.js';
+import {
+    openModal,
+    closeModal,
+    addCloseEventListeners
+} from './shared/modalUtils.js';
 
 // Проверка состояния авторизации при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
+    initAuthStatus(); // Инициализация статуса авторизации при загрузке
+    addAuthEventListeners(); // Навешивание обработчиков для авторизации
+    loadData(); // Всегда загружаем данные при загрузке страницы
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (isAuthenticated) {
-        document.getElementById('auth-btn').textContent = 'Выход';
         document.getElementById('new-btn').style.display = 'block';
     }
+
+    // Обработчик для кнопки "ОКПД, ОКВЭД / Документация"
+    document.getElementById('toggle-doc-btn').addEventListener('click', () => {
+        const toggleBtn = document.getElementById('toggle-doc-btn');
+        const okpdOkvedCols = document.querySelectorAll('.okpd-okved-col');
+        const docCols = document.querySelectorAll('.doc-col');
+
+        if (toggleBtn.textContent === 'Документация') {
+            toggleBtn.textContent = 'ОКПД, ОКВЭД';
+            okpdOkvedCols.forEach(col => col.style.display = 'none');
+            docCols.forEach(col => col.style.display = '');
+            localStorage.setItem('docToggleState', 'docs'); // Сохраняем состояние
+        } else {
+            toggleBtn.textContent = 'Документация';
+            okpdOkvedCols.forEach(col => col.style.display = '');
+            docCols.forEach(col => col.style.display = 'none');
+            localStorage.setItem('docToggleState', 'codes'); // Сохраняем состояние
+        }
+    });
+
+    // Обработчик для кнопки "Добавить новое"
+    document.getElementById('new-btn').addEventListener('click', async () => {
+        const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
+        const select = document.getElementById('new-category_id');
+        select.innerHTML = '';
+        categories.forEach(category => {
+            const option = document.createElement('option');  //внутри выпадающего списка select создаем элементы списка option
+            option.value = category.category_id;
+            option.textContent = `${category.category_id.join('.')} ${category.category_name}`;
+            select.append(option);  // в HTML элемент select вставляем весь список категорий option
+        });
+        openModal('new-form-container'); // Используем функцию из modalUtils.js для открытия модального окна
+        document.getElementById('form-submit-btn').textContent = 'Создать';
+        document.getElementById('form-submit-btn').onclick = createRow;
+        document.getElementById('form-delete-btn').style.display = 'none'; // Скрыть кнопку удаления при создании
+        document.getElementById('new-id').textContent = ''; //очищает значение ID при создании новой записи
+        document.getElementById('doc-container').innerHTML = ''; //*** возможно ненужно, чтоб можно было копировать записи
+    });
+
+    addCloseEventListeners('new-form-container', '#form-close-btn', '.modal-backdrop'); // Добавление обработчика клика по фону модального окна и кнопке закрытия
 });
 
-document.getElementById('auth-btn').addEventListener('click', () => {
-    const authButton = document.getElementById('auth-btn');
-    if (authButton.textContent === 'Авторизация') {
-        document.getElementById('auth-form-container').style.display = 'block';
-    } else {
-        handleLogout();
-    }
-});
+/** GET запрос загружает данные из сервера и обновляет таблицу */
+async function loadData() {
 
-document.getElementById('auth-form').addEventListener('submit', handleAuth);
-
-async function loadData() { //GET запрос загружает данные из сервера и обновляет таблицу
     const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
     const products = await DataManager.fetchProducts();  // Загрузка изделий
 
@@ -165,6 +165,12 @@ async function openEditForm(id) { //GET запрос загружает данн
     document.getElementById('new-prod_okpd').value = data.prod_okpd;
     document.getElementById('new-prod_okved').value = data.prod_okved;
     document.getElementById('new-prod_dir').value = data.prod_dir || '';
+
+    document.getElementById('form-submit-btn').textContent = 'Обновить';
+    document.getElementById('form-submit-btn').onclick = () => updateRow(id);
+    document.getElementById('form-delete-btn').onclick = () => deleteRow(id);
+    document.getElementById('form-delete-btn').style.display = 'block'; // Показать кнопку удаления при редактировании
+
     // Заполнение выпадающего списка категорий
     const categories = await DataManager.fetchCategories();
     const select = document.getElementById('new-category_id'); //поле <select> формы "Категория:"
@@ -186,10 +192,9 @@ async function openEditForm(id) { //GET запрос загружает данн
         addDocField(doc.doc_name, doc.doc_link);
     });
 
-    document.getElementById('form-submit-btn').textContent = 'Обновить';
-    document.getElementById('form-submit-btn').onclick = () => updateRow(id);
-    document.getElementById('form-delete-btn').onclick = () => deleteRow(id);
-    document.getElementById('new-form-container').style.display = 'block';
+
+    openModal('new-form-container');
+    document.getElementById('new-form-container').style.display = 'block'; //это повторяется в openModal возможно можно удалить эту строку
     document.querySelector('.modal-backdrop').style.display = 'block';
 }
 
@@ -241,18 +246,21 @@ async function updateRow(id) { //Отправляет PUT запрос на се
     const username = localStorage.getItem('username') || 'anonymous';
 
     await DataManager.updateProduct(id, data, username); // Отправляем PUT запрос на сервер для обновления записи
-    document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
+    // document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
+    closeModal('new-form-container'); // Закрываем модальное окно
+    document.getElementById('new-form').reset(); // Сброс формы
     loadData();
 }
 
 //удаление позиции по id
 async function deleteRow(id) {
 
-    // Извлечение имени пользователя
-    const username = localStorage.getItem('username') || 'anonymous';
+    const username = localStorage.getItem('username') || 'anonymous';  // Извлечение имени пользователя
 
     await DataManager.deleteProduct(id, username); // Отправляем DELETE запрос на сервер для удаления записи
-    document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
+    // document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
+    closeModal('new-form-container'); // Закрываем модальное окно
+    document.getElementById('new-form').reset(); // Сброс формы
     loadData();
 }
 
@@ -281,14 +289,14 @@ export async function createRow() { //Отправляет POST запрос н�
     const username = localStorage.getItem('username') || 'anonymous';
 
     await DataManager.createProduct(data, username); // POST запрос на создание изделия
-    document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
+    // document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
+    closeModal('new-form-container'); // Закрываем модальное окно
+    document.getElementById('new-form').reset(); // Сброс формы
     loadData();
 }
 
 // Загрузка данных при загрузке страницы
-loadData();
-// Навешивание событий на элементы управления
-EventManager.addEventListeners();
+// loadData();
 
 
 /** Функция для отображения контекстного меню
