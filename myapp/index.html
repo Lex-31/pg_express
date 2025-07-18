@@ -4,16 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js" defer></script>
-    <script src="frontend.js" defer></script>
+    <script src="/frontend/main.js" type="module" defer></script>
     <title>Продукция компании Стальэнерго</title>
 </head>
 
 <body>
+    <!-- форма авторизации -->
+    <div class="auth-container">
+        <button id="auth-btn">Авторизация</button>
+        <div id="auth-form-container">
+            <form id="auth-form">
+                <label>
+                    Логин: <input type="text" id="auth-username" required>
+                </label>
+                <label>
+                    Пароль: <input type="text" id="auth-password" required>
+                </label>
+                <button type="submit" id="auth-submit-btn">Войти</button>
+                <button type="button" id="auth-close-btn">Отмена</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- контейнер кнопопок управления -->
     <div class="a4-container">
-        <button id="new-btn">Добавить новое</button>
         <button id="toggle-doc-btn">Документация</button>
+        <button id="new-btn">Добавить новое</button>
         <table class="table">
             <thead>
                 <tr>
@@ -36,38 +56,18 @@
     <div id="new-form-container">
         <form id="new-form">
             <label>
-                <p>ID: <span id="new-id"></span></p>
+                <p class="prod-id">ID: <span id="new-id"></span></p>
             </label>
-            <label>
-                Категория:
-                <select id="new-category_id" required></select>
-            </label>
-            <label>
-                Порядковый номер изделия:
-                <input type="text" id="new-item_number" required>
-            </label>
-            <label>
-                Наименование изделия:
-                <input type="text" id="new-prod_name" required>
-            </label>
-            <label>
-                Марка:
-                <input type="text" id="new-prod_mark" required>
-            </label>
-            <label>
-                Обозначение:
-                <input type="text" id="new-prod_number" required>
-            </label>
-            <label>
-                Код ОКПД:
-                <input type="text" id="new-prod_okpd2" required>
-            </label>
-            <label>
-                Код ОКВЭД:
-                <input type="text" id="new-prod_okved2" required>
-            </label>
-            <label>
-                Документация:
+            <label> Категория: <select id="new-category_id" required></select> </label>
+            <label> Порядковый номер изделия: <input type="text" id="new-item_number" required> </label>
+            <label> Наименование изделия: <input type="text" id="new-prod_name" required> </label>
+            <label> Марка: <input type="text" id="new-prod_mark" required> </label>
+            <label> Обозначение: <input type="text" id="new-prod_number" required> </label>
+            <label> Код ОКПД: <input type="text" id="new-prod_okpd" required> </label>
+            <label> Код ОКВЭД: <input type="text" id="new-prod_okved" required> </label>
+            <label> Документация:
+                <!-- Директория документации -->
+                <label> Директория документации: <input type="text" class="dir-doc" id="new-prod_dir"> </label>
                 <div id="doc-container">
                     <!-- Динамически добавляемые поля для документов -->
                 </div>
@@ -75,10 +75,18 @@
             </label>
             <div class="buttons">
                 <button type="button" id="form-submit-btn">Создать</button>
-                <button type="button" onclick="closeForm()">Отмена</button>
+                <button type="button" id="form-close-btn">Отмена</button>
                 <button type="button" id="form-delete-btn">Удалить</button>
             </div>
         </form>
+    </div>
+    <!-- Модальное окно для отображения содержимого директории -->
+    <div id="directory-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Содержимое директории</h2>
+            <div id="directory-content"></div>
+        </div>
     </div>
 </body>
 

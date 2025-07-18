@@ -1,0 +1,251 @@
+/* Чекбоксы для фитров отображения архивных и погашенных */
+.checkbox-container {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 15px;
+    bottom: 140px;
+    right: 20px;
+}
+
+.checkbox-container label {
+    cursor: pointer;
+}
+
+/* Стили для кнопки возврата в список ЖП */
+#back-btn {
+    position: fixed;
+    /* Фиксируем положение кнопки */
+    bottom: 80px;
+    /* Расстояние от нижнего края окна */
+    right: 20px;
+    /* Расстояние от правого края окна */
+    padding: 15px 25px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    z-index: 1000;
+    /* Убедитесь, что кнопка поверх остального контента */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#back-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Стили для кнопки авторизации */
+#auth-btn {
+    position: fixed;
+    /* Фиксируем положение кнопки */
+    top: 20px;
+    /* Расстояние от нижнего края окна */
+    right: 20px;
+    /* Расстояние от правого края окна */
+    padding: 15px 25px;
+    border: none;
+    border-radius: 5px;
+    background-color: red;
+    color: white;
+    cursor: pointer;
+    z-index: 1000;
+    /* Убедитесь, что кнопка поверх остального контента */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#auth-btn:hover {
+    background-color: rgb(150, 0, 0);
+}
+
+/* Стили для кнопки "New" */
+#new-btn {
+    display: none;
+    position: fixed;
+    /* Фиксируем положение кнопки */
+    bottom: 20px;
+    /* Расстояние от нижнего края окна */
+    right: 20px;
+    /* Расстояние от правого края окна */
+    padding: 15px 25px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    z-index: 998;
+    /* Убедитесь, что кнопка поверх остального контента */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#new-btn:hover {
+    background-color: #0056b3;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-bottom: 20px;
+}
+
+/* Применяем стиль cursor: pointer; к первой и второй строкам в thead */
+table thead tr:nth-child(1) th,
+table thead tr:nth-child(2) th {
+    cursor: pointer;
+}
+
+.table th,
+.table td {
+    padding: 5px;
+    border: 1px solid;
+    overflow: hidden;
+    white-space: wrap;
+}
+
+.table th {
+    font-weight: normal;
+    background: #dddddd;
+    text-align: center;
+}
+
+.table .light {
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.table td {
+    /* Перенос слов */
+    overflow-wrap: break-word;
+    /* Для старых браузеров */
+    word-break: break-word;
+    /* Автоматическая расстановка переносов */
+    hyphens: auto;
+    text-align: left;
+}
+
+.table tbody tr:nth-child(odd) {
+    background: #fff;
+}
+
+.table tbody tr:nth-child(even) {
+    background: #eeeeee;
+}
+
+/* Стили для выделения первых четырех колонок */
+.highlight-group1 {
+    background-color: #bfd3f7;
+}
+
+/* Стили для выделения последних двух колонок */
+.highlight-group2 {
+    background-color: #bfd3f7;
+}
+
+/* Подсветка неархивной записи */
+.highlight-not-archive {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Подсветка архивированной записи (иконка архива) */
+tr.highlight-archive td:last-child {
+    position: relative;
+    padding-bottom: 30px;
+    /* Место для иконки */
+}
+
+tr.highlight-archive td:last-child::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 5px;
+    background-image: url("/frontend/icons/check.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.highlight-ii-cd {
+    color: grey;
+    text-decoration: line-through;
+}
+
+.highlight-ii-cd td:nth-child(5) {
+    text-decoration: none;
+}
+
+/* Стили для полей формы */
+#new-form label,
+#edit-zp label,
+#auth-form label {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+#new-form input,
+#edit-zp input,
+#auth-form input {
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#new-form button,
+#edit-zp button,
+#auth-form button {
+    padding: 10px 20px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+#new-form button:hover,
+#edit-zp button:hover,
+#auth-form button:hover {
+    background-color: #0056b3;
+}
+
+#new-form #form-delete-btn,
+#edit-zp #zp-delete-btn {
+    background-color: red;
+    padding: 10px 10px;
+}
+
+#new-form #form-delete-btn:hover,
+#edit-zp #zp-delete-btn:hover {
+    background-color: rgb(150, 0, 0);
+}
+
+@media print {
+
+    #back-btn,
+    .checkbox-container {
+        display: none !important;
+    }
+
+    /* Убираем иконку архивированной записи */
+    tr.highlight-archive td:last-child::after {
+        display: none !important;
+    }
+
+    /* Убираем отступ для иконки архивированной записи */
+    tr.highlight-archive td:last-child {
+        padding-bottom: 5px !important;
+    }
+
+    /* Убираем серый цвет при печати*/
+    .highlight-ii-cd {
+        color: inherit !important;
+    }
+}

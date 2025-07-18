@@ -1,19 +1,130 @@
-<button onclick="handleFileAccess()">Открыть файл</button>
+<!DOCTYPE html>
+<html lang="ru">
 
-<script>
-    async function handleFileAccess() {
-        try {
-            // Попытка доступа через File System Access API
-            const fileHandle = await window.showOpenFilePicker({
-                // startIn: '\\\\fs3\\архив центр'
-                startIn: '\\\\fs3\\Производственный%20архив%20центрального%20офиса\\ЕИУС.468622.001_ППСЦ\\ЭД\\ЕИУС.468622.001%20РЭ%20%20ППСЦ%20изм.1.pdf'
-            });
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/style3.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js" defer></script>
+    <script src="/frontend/main3.js" type="module" defer></script>
+    <title></title>
+</head>
 
-            const file = await fileHandle[0].getFile();
-            const url = URL.createObjectURL(file);
-            window.open(url);
-        } catch (err) {
-            alert('Выберите файл вручную через проводник');
-        }
-    }
-</script>
+<body>
+    <!-- форма авторизации -->
+    <div class="auth-container">
+        <button id="auth-btn">Авторизация</button>
+        <div id="auth-form-container">
+            <form id="auth-form">
+                <label>
+                    Логин: <input type="text" id="auth-username" required>
+                </label>
+                <label>
+                    Пароль: <input type="text" id="auth-password" required>
+                </label>
+                <button type="submit" id="auth-submit-btn">Войти</button>
+                <button type="button" id="auth-close-btn">Отмена</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- контейнер кнопопок управления -->
+    <div class="a4-container">
+        <div class="checkbox-container">
+            <!-- <label for="check_archive">Показывать утвержденные записи<input type="checkbox" id="check_archive"></label> -->
+            <label for="check_ii_cd">Показывать погашеные записи<input type="checkbox" id="check_ii_cd"></label>
+        </div>
+        <button id="back-btn">Назад в список ЖП</button>
+        <button id="new-btn">Добавить новую запись</button>
+
+        <!-- Таблица с заголовком и колонками -->
+        <table class="table">
+            <colgroup>
+                <col style="width: 4%">
+                <col style="width: 12%">
+                <col style="width: 31%">
+                <col style="width: 11%">
+                <col style="width: 31%">
+                <col style="width: 11%">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="light" colspan="5">Журнал предложений об изменении в КД</th>
+                    <th>Номер альбома в архиве ОГТ</th>
+                </tr>
+                <tr>
+                    <th class="light" colspan="5" id="zp_name">
+                        <!-- Сюда вставляем название ЖП из табилцы stalenergo_zp.zp_name -->
+                    </th>
+                    <th class="light" id="zp_id">
+                        <!-- Сюда вставляем номер-идентификатор ЖП из табилцы stalenergo_zp.id -->
+                    </th>
+                </tr>
+                <tr>
+                    <th class="id_note">№ п/п</th>
+                    <th class="name_note">Наименование узла (детали), обозначение</th>
+                    <th class="note">Содержание замечания (предложения)</th>
+                    <th class="owner_date">Фамилия, подпись автора (инициатора) изменения, дата</th>
+                    <th class="response">Ответ на замечание (предложение)</th>
+                    <th class="response_date">Фамилия, подпись автора(ов) принятого решения, дата</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Пример строки добавляемой динамически из БД -->
+                <!-- <tr data-id="24">
+                    <td class="id_note">24</td>
+                    <td class="name_note">ЕИУС.465333.010 УТ600</td>
+                    <td class="note">В целях унификации, предлагаю использовать вместо Экрана ЕИУС.465333.010.006, Экран ЕИУС.468333.009.006.</td>
+                    <td class="owner_date">Банникова О.А. 30.05.2025</td>
+                    <td class="response">Согласовано. В КД будет учтено при коррекции.</td>
+                    <td class="response_date">Клементьев В.А. 30.05.2025</td>
+                </tr> -->
+                <!-- Динамически добавляемые записи из БД -->
+            </tbody>
+        </table>
+    </div>
+    <!-- Фон для модального окна -->
+    <div class="modal-backdrop"></div>
+    <!-- Форма для создания новой записи -->
+    <div id="new-form-container">
+        <form id="new-form">
+            <label>№ п/п: <input type="number" id="new-note_zp_id" required></label>
+            <label>Наименование узла (детали), обозначение: <input type="text" id="new-name_note" required></label>
+            <label>Содержание замечания (предложения): <input type="text" id="new-note" required></label>
+            <label>Фамилия, подпись автора (инициатора) изменения, дата: <input type="text" id="new-owner_note"
+                    required></label>
+            <label>Дата составления замечания (предложения): <input type="date" id="new-owner_date"></label>
+            <label>Ответ на замечание (предложение): <input type="text" id="new-response"></label>
+            <label>Фамилия, подпись автора(ов) принятого решения, дата: <input type="text"
+                    id="new-response_note"></label>
+            <label>Дата принятия решения: <input type="date" id="new-response_date"></label>
+            <label style="display: block;">Утвержденная запись: <input type="checkbox" id="new-archive"></label>
+            <label>Извещение об изменении КД: <input type="text" id="new-ii_cd"></label>
+
+
+            <div class="buttons">
+                <button type="button" id="form-submit-btn">Создать</button>
+                <button type="button" id="form-close-btn">Отмена</button>
+                <button type="button" id="form-delete-btn">Удалить</button>
+            </div>
+        </form>
+    </div>
+    <!-- Форма редактирования ЖП -->
+    <div id="edit-zp-container">
+        <form id="edit-zp">
+            <label>№ альбома в архиве ОГТ: <input type="number" id="new-id" required> </label>
+            <label>Наименование журнала: <input type="text" id="new-zp_name" required> </label>
+            <!-- <label style="display: block;">Утвержденная запись: <input type="checkbox" id="zp-archive"></label> -->
+
+            <div class="buttons">
+                <button type="button" id="zp-submit-btn">Обновить</button>
+                <button type="button" id="zp-close-btn">Отмена</button>
+                <button type="button" id="zp-delete-btn">Удалить</button>
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>

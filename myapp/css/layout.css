@@ -1,0 +1,109 @@
+.a4-container {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 0;
+    box-sizing: border-box;
+    border: 5px solid transparent;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: none;
+}
+
+/* Модальное окно для формы. #edit-zp-container from style3.css */
+#new-form-container,
+#auth-form-container,
+#edit-zp-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.buttons {
+    display: flex;
+    gap: 35px;
+    justify-content: space-between;
+}
+
+/* Для модального окна */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0, 0, 0);
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Контекстное меню правой кнопкой мыши. Только для style.css */
+.context-menu {
+    position: absolute;
+}
+
+.context-menu-item {
+    padding: 10px;
+    background-color: #50ff00;
+    border: 1px solid;
+    cursor: pointer;
+}
+
+.context-menu-item:hover {
+    background-color: #3bbb00;
+}
+
+/* Скрытие элементов при печати */
+@media print {
+    @page {
+        size: A4;
+        margin: 1cm 1cm 1cm 2cm;
+    }
+
+    #new-btn,
+    #toggle-doc-btn,
+    #auth-btn {
+        display: none !important;
+    }
+
+
+}

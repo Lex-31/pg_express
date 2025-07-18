@@ -5,3 +5,5 @@ myapp/node_modules/
 myapp/categories.sql
 myapp/products.sql
 myapp/doc.sql
+myapp/log_cud
+chat/

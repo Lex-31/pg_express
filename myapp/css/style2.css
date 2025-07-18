@@ -1,0 +1,160 @@
+/* Стили для кнопки авторизации */
+#auth-btn {
+    position: fixed;
+    /* Фиксируем положение кнопки */
+    /* bottom: 80px; */
+    top: 20px;
+    /* Расстояние от нижнего края окна */
+    right: 20px;
+    /* Расстояние от правого края окна */
+    padding: 15px 25px;
+    border: none;
+    border-radius: 5px;
+    background-color: red;
+    color: white;
+    cursor: pointer;
+    z-index: 1000;
+    /* Убедитесь, что кнопка поверх остального контента */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#auth-btn:hover {
+    background-color: rgb(150, 0, 0);
+}
+
+/* Стили для кнопки "New" */
+#new-btn {
+    display: none;
+    position: fixed;
+    /* Фиксируем положение кнопки */
+    bottom: 20px;
+    /* Расстояние от нижнего края окна */
+    right: 20px;
+    /* Расстояние от правого края окна */
+    padding: 15px 25px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    z-index: 1000;
+    /* Убедитесь, что кнопка поверх остального контента */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#new-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Стили для кнопки "Документация" */
+#toggle-doc-btn {
+    position: fixed;
+    /* Фиксируем положение кнопки */
+    bottom: 80px;
+    /* Расстояние от нижнего края окна */
+    right: 20px;
+    /* Расстояние от правого края окна */
+    padding: 15px 25px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    z-index: 1000;
+    /* Убедитесь, что кнопка поверх остального контента */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#toggle-doc-btn:hover {
+    background-color: #0056b3;
+}
+
+.table {
+    border: 1px solid;
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.table th,
+.table td {
+    padding: 5px;
+    border: 1px solid;
+    text-align: center;
+    overflow: hidden;
+    white-space: wrap;
+}
+
+.table th {
+    font-weight: bold;
+    background: #dddddd;
+}
+
+.table tr td:nth-child(2) {
+    /* для строк наименований */
+    text-align: left;
+}
+
+#notes-total,
+#notes-closed,
+#notes-unsigned {
+    cursor: pointer;
+}
+
+.table tbody tr:nth-child(odd) {
+    background: #fff;
+}
+
+.table tbody tr:nth-child(even) {
+    background: #eeeeee;
+}
+
+.table tbody tr:hover {
+    background-color: #bfd3f7;
+}
+
+.category_item {
+    background-color: #bbbbbb;
+}
+
+/* Стили для полей формы */
+#new-form label,
+#auth-form label {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+#new-form input,
+#auth-form input {
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#new-form button,
+#auth-form button {
+    padding: 10px 20px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+#new-form button:hover,
+#auth-form button:hover {
+    background-color: #0056b3;
+}
+
+#new-form #form-delete-btn {
+    background-color: red;
+    padding: 10px 10px;
+}
+
+#new-form #form-delete-btn:hover {
+    background-color: rgb(150, 0, 0);
+}

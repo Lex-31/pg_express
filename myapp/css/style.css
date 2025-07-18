@@ -1,38 +1,30 @@
-@media print {
-    @page {
-        size: A4;
-        margin: 1cm 1cm 1cm 2cm;
-    }
-
-    #new-btn,
-    #toggle-doc-btn {
-        display: none;
-    }
-
+/* Стили для кнопки авторизации */
+#auth-btn {
+    position: fixed;
+    /* Фиксируем положение кнопки */
+    /* bottom: 80px; */
+    top: 20px;
+    /* Расстояние от нижнего края окна */
+    right: 20px;
+    /* Расстояние от правого края окна */
+    padding: 15px 25px;
+    border: none;
+    border-radius: 5px;
+    background-color: red;
+    color: white;
+    cursor: pointer;
+    z-index: 1000;
+    /* Убедитесь, что кнопка поверх остального контента */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-body,
-input,
-button {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 12px;
-}
-
-body {
-    margin: 0;
-}
-
-.a4-container {
-    width: 210mm;
-    min-height: 297mm;
-    margin: 0 auto;
-    padding: 0;
-    box-sizing: border-box;
-    border: 5px solid transparent;
+#auth-btn:hover {
+    background-color: rgb(150, 0, 0);
 }
 
 /* Стили для кнопки "New" */
 #new-btn {
+    display: none;
     position: fixed;
     /* Фиксируем положение кнопки */
     bottom: 20px;
@@ -121,11 +113,13 @@ body {
     width: 20%;
 }
 
+/*ОКПД*/
 .table th:nth-child(5),
 .table td:nth-child(5) {
     width: 10%;
 }
 
+/*ОКВЭД*/
 .table th:nth-child(6),
 .table td:nth-child(6) {
     width: 8%;
@@ -153,51 +147,43 @@ body {
     background-color: #bbbbbb;
 }
 
-/* Модальное окно для формы */
-#new-form-container {
-    position: fixed;
-    /* Фиксируем положение окна */
-    top: 50%;
-    /* Центрируем по вертикали */
-    left: 50%;
-    /* Центрируем по горизонтали */
-    transform: translate(-50%, -50%);
-    /* Сдвигаем на половину ширины и высоты */
-    background-color: white;
-    padding: 20px;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    /* Убедитесь, что окно поверх остального контента */
-    display: none;
-    /* Скрыто по умолчанию */
-}
 
 /* Стили для полей формы */
-#new-form label {
+#new-form label,
+#auth-form label {
     display: flex;
     flex-direction: column;
     margin-bottom: 15px;
 }
 
-#new-form label:nth-child(1) {
+#new-form label label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.prod-id {
     /* Для затенения ID */
     color: rgba(0, 0, 0, 0.4);
 }
 
-#new-form input {
+.dir-doc {
+    width: 100%;
+}
+
+#new-form input,
+#auth-form input {
     padding: 8px;
     margin-top: 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
 
-.buttons {
-    display: flex;
-    justify-content: space-between;
-}
-
-#new-form button {
+#new-form button,
+#auth-form button {
     padding: 10px 20px;
     margin-top: 10px;
     border: none;
@@ -207,7 +193,8 @@ body {
     cursor: pointer;
 }
 
-#new-form button:hover {
+#new-form button:hover,
+#auth-form button:hover {
     background-color: #0056b3;
 }
 
@@ -220,36 +207,35 @@ body {
     background-color: rgb(150, 0, 0);
 }
 
-/* Фон за модальным окном */
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-    display: none;
-}
-
-/* Выпадающее меню правой кнопкой мыши */
-ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.context-menu {
-    position: absolute;
-}
-
-.context-menu-item {
-    padding: 10px;
-    background-color: #50ff00;
-    border: 1px solid;
+/*Наведение на файлы и директории*/
+.file p,
+.directory p {
     cursor: pointer;
+    margin-bottom: 10px;
 }
 
-.context-menu-item:hover {
-    background-color: #3bbb00;
+.file p:hover,
+.directory p:hover {
+    background-color: #bfd3f7;
+}
+
+/*Отступ для списка файлов и директорий*/
+.directory .file,
+.directory .directory {
+    margin-left: 20px;
+}
+
+/*Для подчеркивания если значения папки изделия не заполнено*/
+.fail-dir {
+    position: relative;
+}
+
+.fail-dir::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0px;
+    height: 2px;
+    background: red;
 }
