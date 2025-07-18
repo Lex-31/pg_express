@@ -75,7 +75,7 @@
     background-color: #007bff;
     color: white;
     cursor: pointer;
-    z-index: 1000;
+    z-index: 998;
     /* Убедитесь, что кнопка поверх остального контента */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
@@ -89,6 +89,12 @@
     border-collapse: collapse;
     table-layout: fixed;
     margin-bottom: 20px;
+}
+
+/* Применяем стиль cursor: pointer; к первой и второй строкам в thead */
+table thead tr:nth-child(1) th,
+table thead tr:nth-child(2) th {
+    cursor: pointer;
 }
 
 .table th,
@@ -141,6 +147,7 @@
 /* Подсветка неархивной записи */
 .highlight-not-archive {
     font-weight: bold;
+    cursor: pointer;
 }
 
 /* Подсветка архивированной записи (иконка архива) */

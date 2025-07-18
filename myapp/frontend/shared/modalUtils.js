@@ -29,8 +29,9 @@ export function closeModal(modalElementId) {
 /** Навешивает обработчики событий для закрытия модального окна
  * @param {string} modalElementId - ID элемента контейнера модального окна
  * @param {string} [closeButtonSelector] - Селектор кнопки закрытия внутри модального окна
- * @param {string} [backdropSelector='.modal-backdrop'] - Селектор фона модального окна */
-export function addCloseEventListeners(modalElementId, closeButtonSelector, backdropSelector = '.modal-backdrop') {
+ * @param {string} [backdropSelector='.modal-backdrop'] - Селектор фона модального окна
+ * @param {Function} [onCloseCallback] - Callback функция, вызываемая при закрытии модального окна */
+export function addCloseEventListeners(modalElementId, closeButtonSelector, backdropSelector = '.modal-backdrop', onCloseCallback) {
     const modal = document.getElementById(modalElementId);
     const backdrop = document.querySelector(backdropSelector);
 
@@ -42,6 +43,7 @@ export function addCloseEventListeners(modalElementId, closeButtonSelector, back
         if (closeButton) {
             closeButton.addEventListener('click', () => {
                 closeModal(modalElementId);
+                if (onCloseCallback) { onCloseCallback(); }
             });
         }
     }
@@ -50,6 +52,7 @@ export function addCloseEventListeners(modalElementId, closeButtonSelector, back
     if (backdrop) {
         backdrop.addEventListener('click', () => {
             closeModal(modalElementId);
+            if (onCloseCallback) { onCloseCallback(); }
         });
     }
 }

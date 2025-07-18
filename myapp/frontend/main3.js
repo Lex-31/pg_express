@@ -4,6 +4,7 @@ import {
     initAuthStatus,
     addAuthEventListeners
 } from './shared/auth.js';
+import { openModal, closeModal, addCloseEventListeners } from "./shared/modalUtils.js";
 //Для записей ЖП
 
 //получаем id текущего ЖП из URL
@@ -15,6 +16,25 @@ function getZpIdFromPath() {
     // Ищем и возвращаем ID, который должен быть последней частью пути
     const id = pathParts[pathParts.length - 1];
     return id;
+}
+
+
+
+function resetNewFormAndRestoreFields() {  //сброс видимости полей формы
+    document.getElementById('new-form').reset();  //сброс полей формы
+    document.getElementById('form-submit-btn').textContent = 'Создать';
+    //сбрасываем видимость полей формы
+    document.getElementById('new-note_zp_id').parentElement.style.display = 'flex';
+    document.getElementById('new-response').parentElement.style.display = 'flex';
+    document.getElementById('new-response_note').parentElement.style.display = 'flex';
+    document.getElementById('new-response_date').parentElement.style.display = 'flex';
+    document.getElementById('new-name_note').parentElement.style.display = 'flex';
+    document.getElementById('new-note').parentElement.style.display = 'flex';
+    document.getElementById('new-owner_note').parentElement.style.display = 'flex';
+    document.getElementById('new-owner_date').parentElement.style.display = 'flex';
+    document.getElementById('new-archive').parentElement.style.display = 'block';
+    document.getElementById('new-ii_cd').parentElement.style.display = 'flex';
+    document.getElementById('form-delete-btn').style.display = 'block';
 }
 
 async function loadNotesData(id) {  //загрузка всех записей из ЖП по id ЖП
@@ -50,7 +70,6 @@ data notes: {"id":18,"zp_name":"ЗФ 220", "json_agg":[{"id":1,"note_zp_id":1,"n
 
         if (!notes || !notes.json_agg) {  //если нет записей в этом ЖП, нет смысла отображать записи
             console.error('Нет данных для отображения');
-            // return;
         } else {
             //если существуют записи в этом ЖП отображаем их и навешиваем события
             notes.json_agg.forEach(note => { //походимся по всем записям в ЖП
@@ -101,28 +120,19 @@ data notes: {"id":18,"zp_name":"ЗФ 220", "json_agg":[{"id":1,"note_zp_id":1,"n
         }
 
         //состояние фильтров
-        // const checkArchive = document.getElementById('check_archive');  // Получаем чекбоксы
-        const checkIiCd = document.getElementById('check_ii_cd');
+        const checkIiCd = document.getElementById('check_ii_cd'); // Получаем чекбоксы
 
-        // checkArchive.checked = localStorage.getItem('check_archive') === 'false' ? false : true;  // Восстанавливаем состояние чекбоксов из localStorage. По умолчанию true
-        checkIiCd.checked = localStorage.getItem('check_ii_cd') === 'false' ? false : true;
+        checkIiCd.checked = localStorage.getItem('check_ii_cd') === 'false' ? false : true; // Восстанавливаем состояние чекбоксов из localStorage. По умолчанию true
 
         function updateVisibility() { // Функция для обновления видимости строк таблицы
-            // const archiveRows = document.querySelectorAll('.highlight-archive');
             const iiCdRows = document.querySelectorAll('.highlight-ii-cd');
-            // archiveRows.forEach(row => {
-            //     row.style.display = checkArchive.checked ? 'table-row' : 'none'; //если есть галочка - отображаем, иначе none
-            // });
+
             iiCdRows.forEach(row => { //обновляем строки таблицы
                 row.style.display = checkIiCd.checked ? 'table-row' : 'none'; //если есть галочка - отображаем, иначе none
             });
         }
 
-        // checkArchive.addEventListener('change', function () { // Добавляем обработчики событий для сохранения состояния чекбоксов
-        //     localStorage.setItem('check_archive', this.checked);
-        //     updateVisibility();
-        // });
-        checkIiCd.addEventListener('change', function () {
+        checkIiCd.addEventListener('change', function () { // Добавляем обработчики событий для сохранения состояния чекбоксов
             localStorage.setItem('check_ii_cd', this.checked);
             updateVisibility();
         });
@@ -148,21 +158,14 @@ function openEditZpForm(notes) { //открытие формы редактир�
     }
 
     document.getElementById('zp-delete-btn').onclick = () => { deleteZp(notes.id); }; //навешиваем событие на кнопку "Удалить" - удаление ЖП
-    document.getElementById('edit-zp-container').style.display = 'block';
-    document.querySelector('.modal-backdrop').style.display = 'block';
+    openModal('edit-zp-container');
 
-    //Кнопка закрытие формы редактирования ЖП
-    document.getElementById('zp-close-btn').addEventListener('click', () => {
-        document.getElementById('edit-zp-container').style.display = 'none';
-        document.querySelector('.modal-backdrop').style.display = 'none';
-        document.getElementById('edit-zp').reset();  //сброс полей формы
-    });
+
 }
 
 function openEditNoteZpForm(note, group) { //открытие формы редактирования записи в ЖП
     //открываем форму
-    document.getElementById('new-form-container').style.display = 'block';
-    document.querySelector('.modal-backdrop').style.display = 'block';
+    openModal('new-form-container');
     document.getElementById('form-submit-btn').textContent = 'Обновить';
     document.getElementById('form-submit-btn').onclick = () => { updateNoteZp(note.id) }; //отправлет PUT запрос обновления записи в ЖП (по id записи)
     document.getElementById('form-delete-btn').onclick = () => { deleteNoteZp(note.id) }; //отправлет DELETE запрос удаления записи в ЖП (по id записи)
@@ -186,6 +189,8 @@ function openEditNoteZpForm(note, group) { //открытие формы ред�
         document.getElementById('new-response_note').parentElement.style.display = 'none';
         document.getElementById('new-response_date').parentElement.style.display = 'none';
         document.getElementById('new-archive').parentElement.style.display = 'none';
+        document.getElementById('new-ii_cd').parentElement.style.display = 'none';
+
     } else if (group === 'group2') { //если редактируем последние 2 столбца
         document.getElementById('new-note_zp_id').parentElement.style.display = 'none';
         document.getElementById('new-name_note').parentElement.style.display = 'none';
@@ -194,26 +199,15 @@ function openEditNoteZpForm(note, group) { //открытие формы ред�
         document.getElementById('new-owner_date').parentElement.style.display = 'none';
         document.getElementById('form-delete-btn').style.display = 'none';
     }
-
-    //закрытие формы обновления записи в ЖП
-    document.getElementById('form-close-btn').addEventListener('click', () => { // вешаем событие на кнопку "Отмена"
-        document.getElementById('new-form-container').style.display = 'none';
-        document.querySelector('.modal-backdrop').style.display = 'none';
-        document.getElementById('new-form').reset();  //сброс полей формы
-        document.getElementById('form-submit-btn').textContent = 'Создать';
-        //сбрасываем видимость полей формы
-        document.getElementById('new-note_zp_id').parentElement.style.display = 'flex';
-        document.getElementById('new-response').parentElement.style.display = 'flex';
-        document.getElementById('new-response_note').parentElement.style.display = 'flex';
-        document.getElementById('new-response_date').parentElement.style.display = 'flex';
-        document.getElementById('new-name_note').parentElement.style.display = 'flex';
-        document.getElementById('new-note').parentElement.style.display = 'flex';
-        document.getElementById('new-owner_note').parentElement.style.display = 'flex';
-        document.getElementById('new-owner_date').parentElement.style.display = 'flex';
-        document.getElementById('new-archive').parentElement.style.display = 'block';
-        document.getElementById('form-delete-btn').style.display = 'block';
-    });
 }
+
+//закрытие формы создания новой записи в ЖП
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('form-close-btn').addEventListener('click', () => { // вешаем событие на кнопку "Отмена"
+        closeModal('new-form-container');
+        resetNewFormAndRestoreFields(); //сброс формы и восстановление скрытых полей)
+    });
+});
 
 async function updateZp(id) { //обновление данных ЖП (id и zp_name) в таблице ЖП stalenergo_zp
     const username = localStorage.getItem('username') || 'anonymous'; // Извлечение имени пользователя
@@ -257,6 +251,17 @@ async function updateNoteZp(id) {  //обновление записи в ЖП �
     document.getElementById('form-close-btn').click();
     loadNotesData(getZpIdFromPath());
 }
+
+//закрытие формы обновления записи в ЖП (оставлен для сохранения специфичной логики формы)
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('form-close-btn').addEventListener('click', () => { // вешаем событие на кнопку "Отмена"
+        closeModal('new-form-container');
+        // document.getElementById('new-form').reset();  //сброс полей формы
+        // document.getElementById('form-submit-btn').textContent = 'Обновить'; // Исправлено на "Обновить" для формы редактирования
+
+        resetNewFormAndRestoreFields(); //восстановление видимости полей формы
+    });
+});
 
 async function deleteZp(id) { //удаление ЖП по id
     const username = localStorage.getItem('username') || 'anonymous';
@@ -307,6 +312,8 @@ async function createRow() { //Отправляет POST запрос на се�
 document.addEventListener('DOMContentLoaded', () => {
     initAuthStatus();
     addAuthEventListeners(); // Добавляем обработчики событий из shared/auth.js
+    addCloseEventListeners('new-form-container', null, '.modal-backdrop', resetNewFormAndRestoreFields); //закрытие по фону
+    addCloseEventListeners('edit-zp-container', null, '.modal-backdrop', () => { document.getElementById('edit-zp').reset(); }); //закрытие по фону
 
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (isAuthenticated) { document.getElementById('new-btn').style.display = 'block'; }
@@ -366,6 +373,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    //Кнопка закрытие формы редактирования ЖП
+    document.getElementById('zp-close-btn').addEventListener('click', () => {
+        closeModal('edit-zp-container');
+        document.getElementById('edit-zp').reset();  //сброс полей формы
+    });
+
     // Навешивание событий на элементы управления (конпку создания новой записи и закрытия формы создания) 
     //открывает форму при создании новой записи в ЖП
     document.getElementById('new-btn').addEventListener('click', async () => {
@@ -378,36 +391,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         document.getElementById('new-note_zp_id').value = currentNote || 1; //номер текущей записи, а если записей нет то будет первая
-
-        document.getElementById('new-form-container').style.display = 'block';
-        document.querySelector('.modal-backdrop').style.display = 'block';
         document.getElementById('form-submit-btn').textContent = 'Создать';
+        openModal('new-form-container');
 
         //скрываем некоторые поля
         document.getElementById('new-response').parentElement.style.display = 'none';
         document.getElementById('new-response_note').parentElement.style.display = 'none';
         document.getElementById('new-response_date').parentElement.style.display = 'none';
         document.getElementById('new-archive').parentElement.style.display = 'none';
+        document.getElementById('new-ii_cd').parentElement.style.display = 'none';
         document.getElementById('form-delete-btn').style.display = 'none';
 
         document.getElementById('form-submit-btn').onclick = createRow; //отправлет POST запрос создания нового ЖП
-    });
-
-
-
-
-    //закрытие формы создания новой записи в ЖП
-    document.getElementById('form-close-btn').addEventListener('click', () => {
-        document.getElementById('new-form-container').style.display = 'none';
-        document.querySelector('.modal-backdrop').style.display = 'none';
-        document.getElementById('new-form').reset();  //сброс полей формы
-        document.getElementById('form-submit-btn').textContent = 'Создать';
-        //восстанавливаем скрытые поля
-        document.getElementById('new-response').parentElement.style.display = 'flex';
-        document.getElementById('new-response_note').parentElement.style.display = 'flex';
-        document.getElementById('new-response_date').parentElement.style.display = 'flex';
-        document.getElementById('new-archive').parentElement.style.display = 'block';
-        document.getElementById('form-delete-btn').style.display = 'block';
     });
 
     //кнопка возврата назад в список ЖП

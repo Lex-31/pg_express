@@ -47,15 +47,15 @@ export class EventManager {
         // });
 
         //закрытие формы
-        document.getElementById('form-close-btn').addEventListener('click', () => {
-            document.getElementById('new-form-container').style.display = 'none';
-            document.querySelector('.modal-backdrop').style.display = 'none';
-            document.getElementById('new-form').reset();
-            document.getElementById('form-submit-btn').textContent = 'Создать';
-            document.getElementById('form-submit-btn').onclick = createRow;
-            document.getElementById('form-delete-btn').onclick = null;
-            document.getElementById('doc-container').innerHTML = '';
-        });
+        // document.getElementById('form-close-btn').addEventListener('click', () => {
+        //     document.getElementById('new-form-container').style.display = 'none';
+        //     document.querySelector('.modal-backdrop').style.display = 'none';
+        //     document.getElementById('new-form').reset();
+        //     document.getElementById('form-submit-btn').textContent = 'Создать';
+        //     document.getElementById('form-submit-btn').onclick = createRow;
+        //     document.getElementById('form-delete-btn').onclick = null;
+        //     document.getElementById('doc-container').innerHTML = '';
+        // });
 
     }
 }

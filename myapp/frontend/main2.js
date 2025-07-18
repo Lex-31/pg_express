@@ -129,20 +129,25 @@ function sortZp() { //сортировка ЖП по 3 столбцам
         localStorage.setItem(headerId, header.order || ''); // Сохраняем состояние сортировки в localStorage
     }
 
-    function updateHeaderUI(header) {  //обновляет UI заголовка, добавляя иконку сортировки в зависимости от текущего порядка
-        // header.element.innerHTML = header.element.textContent.trim(); // Удаляем все иконки сортировки
-        // Сохраняем оригинальное текстовое содержимое заголовка (если еще не сохранено)
-        if (!header.originalText) {
-            header.originalText = header.element.textContent.trim();
+    function updateHeaderUI(header) { // обновляет UI заголовка, добавляя/удаляя иконку сортировки в зависимости от текущего порядка
+        const arrowSpan = header.element.querySelector('.sort-arrow');
+
+        // Удаляем существующую стрелочку, если она есть
+        if (arrowSpan) {
+            arrowSpan.remove();
         }
 
-        // Устанавливаем innerHTML обратно в оригинальный текст перед добавлением стрелочки
-        header.element.innerHTML = header.originalText;
-
-        if (header.order === 'asc') {  // Добавляем иконку сортировки в зависимости от порядка
-            header.element.innerHTML += ' ↑';
-        } else if (header.order === 'desc') {
-            header.element.innerHTML += ' ↓';
+        // Добавляем новую стрелочку, если есть порядок сортировки
+        if (header.order === 'asc' || header.order === 'desc') {
+            const newArrowSpan = document.createElement('span');
+            newArrowSpan.classList.add('sort-arrow');
+            if (header.order === 'asc') {
+                newArrowSpan.textContent = ' ↑';
+            } else {
+                newArrowSpan.textContent = ' ↓';
+            }
+            // Добавляем стрелочку после текста заголовка
+            header.element.append(newArrowSpan);
         }
     }
 
@@ -226,7 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     loadData(); // Загрузка данных при загрузке страницы
-
 
     addCloseEventListeners('new-form-container', '#form-close-btn', '.modal-backdrop');    // Навешиваем обработчики закрытия модального окна
 });
