@@ -61,6 +61,15 @@ export class DbService {
                 FOREIGN KEY (zp_id) REFERENCES ${table_name}_zp(id) ON UPDATE CASCADE ON DELETE CASCADE -- если в _zp.id меняется/удаляется запись, то каскадно меняются/удаляются все записи в _notes_zp.zp_id
             );
             `);
+            await client.query(`
+            CREATE TABLE IF NOT EXISTS ${table_name}_users (
+                id SERIAL PRIMARY KEY NOT NULL,
+                username VARCHAR(255) UNIQUE NOT NULL, --Имя пользователя (должно быть уникальным)
+                email VARCHAR(255) UNIQUE NOT NULL, --Адрес электронной почты (должен быть уникальным, используется для входа)
+                password_hash VARCHAR(255) NOT NULL, --Хэшированный пароль пользователя
+                permissions TEXT[] DEFAULT '{}' --Массив текста для хранения списка разрешений пользователя (например, {'создание_журналов', 'редактирование_записей'})
+            );
+            `);
 
             const result = await client.query(`SELECT * FROM ${table_name}`);
             if (result.rowCount === 0) {
@@ -433,6 +442,16 @@ export class DbService {
                         { name: 'response_date', type: 'date', nullable: true },
                         { name: 'archive', type: 'boolean', nullable: true },
                         { name: 'ii_cd', type: 'character varying', nullable: true }
+                    ]
+                },
+                {
+                    name: `${table_name}_users`,
+                    columns: [
+                        { name: 'id', type: 'integer', nullable: false },
+                        { name: 'username', type: 'character varying', nullable: false },
+                        { name: 'email', type: 'character varying', nullable: false },
+                        { name: 'password_hash', type: 'character varying', nullable: false },
+                        { name: 'permissions', type: 'ARRAY', nullable: true }
                     ]
                 }
             ];
