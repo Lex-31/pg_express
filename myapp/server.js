@@ -6,7 +6,7 @@ import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import fileRoutes from './routes/fileRoutes.js';
 import logRoutes from './routes/logRoutes.js';
-import authRoutes from '.routes/authRoutes.js'
+import authRoutes from './routes/authRoutes.js'
 import { DbService } from './services/dbService.js';
 
 const app = express();
@@ -41,7 +41,7 @@ app.use(productRoutes);  // подключение маршрутов для п�
 app.use(categoryRoutes);  // подключение маршрутов для категорий
 app.use(fileRoutes);  // подключение маршрутов для файлов и директорий
 app.use(logRoutes);  // подключение маршрутов для логирования
-app.use('/api', authRoutes); // подключение маршрутов для аутентификации ???возможно удалить надо первый аргумент '/api'
+app.use(authRoutes); // подключение маршрутов для аутентификации ???возможно удалить надо первый аргумент '/api'
 
 const PORT = 3000;
 

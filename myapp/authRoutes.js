@@ -1,29 +1,28 @@
-import { Router } from 'express';
+import express from 'express';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
-import { pool, table_name } from '../config/dbConfig.js';
+import { pool } from '../config/dbConfig.js';
 import jwt from 'jsonwebtoken';
 
-const router = Router();
+const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key'; // Replace with a strong secret key
 
-
+// Validation middleware for registration
 const validateRegistration = [
     body('username')
         .trim()
         .notEmpty().withMessage('Имя пользователя не может быть пустым')
-        .isLength({ min: 3 }).withMessage('Длинна должна быть более 3 символов.'),
+        .isLength({ min: 3 }).withMessage('Имя пользователя должно содержать не менее 3 символов'),
     body('email')
         .trim()
         .notEmpty().withMessage('Email не может быть пустым')
         .isEmail().withMessage('Неверный формат Email'),
     body('password')
-        .trim()
         .notEmpty().withMessage('Пароль не может быть пустым')
-        .isLength({ min: 6 }).withMessage('Пароль должен быть более 6 символов.')
+        .isLength({ min: 6 }).withMessage('Пароль должен содержать не менее 6 символов'),
 ];
 
-// POST /api/register - User registration
+// POST /api/register
 router.post('/api/register', validateRegistration, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -31,14 +30,14 @@ router.post('/api/register', validateRegistration, async (req, res) => {
     }
 
     const { username, email, password } = req.body;
-    const client = await pool.connect();
+
+    let client;
 
     try {
-        // Проверка существует ли уже пользователь с email или именем
-        const existingUser = await client.query(
-            `SELECT id FROM ${table_name}_users WHERE email = $1 OR username = $2`,
-            [email, username]
-        );
+        client = await pool.connect();
+
+        // Check if user with this email or username already exists
+        const existingUser = await client.query('SELECT * FROM users WHERE email = $1 OR username = $2', [email, username]);
 
         if (existingUser.rows.length > 0) {
             const userExistsByEmail = existingUser.rows.some(user => user.email === email);
@@ -54,29 +53,30 @@ router.post('/api/register', validateRegistration, async (req, res) => {
             return res.status(409).json({ message });
         }
 
-        // Хеширование пароля
-        const saltRounds = 10; //коэфициент затрат на хеширование
+        // Hash the password
+        const saltRounds = 10; // Cost factor
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
-        // Вставка нового пользователя в БД
+        // Insert the new user into the database
         const newUser = await client.query(
-            `INSERT INTO ${table_name}_users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, permissions`,
+            'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, permissions',
             [username, email, passwordHash]
         );
 
+        // Respond with success (excluding password hash)
         res.status(201).json({
-            message: 'Пользователь успешно зарегистрирован.',
+            message: 'Пользователь успешно зарегистрирован',
             user: {
                 id: newUser.rows[0].id,
                 username: newUser.rows[0].username,
                 email: newUser.rows[0].email,
-                permissions: newUser.rows[0].permissions || [], //гарантирует, что свойство permissions в объекте ответа всегда будет массивом, даже если оно не было возвращено из базы данных при вставке
+                permissions: newUser.rows[0].permissions,
             }
         });
 
     } catch (error) {
         console.error('Ошибка при регистрации пользователя:', error);
-        res.status(500).json({ message: 'Внутренняя ошибка сервера при регистрации.', error: error.message });
+        res.status(500).json({ message: 'Произошла ошибка при регистрации пользователя', error: error.message });
     } finally {
         if (client) {
             client.release();
@@ -101,12 +101,15 @@ router.post('/api/login', validateLogin, async (req, res) => {
     }
 
     const { emailOrUsername, password } = req.body;
-    const client = await pool.connect();
+
+    let client;
 
     try {
+        client = await pool.connect();
+
         // Find user by email or username
         const userQuery = await client.query(
-            `SELECT id, username, email, password_hash, permissions FROM ${table_name}_users WHERE email = $1 OR username = $2`,
+            'SELECT id, username, email, password_hash, permissions FROM users WHERE email = $1 OR username = $2',
             [emailOrUsername, emailOrUsername] // Using the same value for both checks
         );
 
@@ -139,78 +142,24 @@ router.post('/api/login', validateLogin, async (req, res) => {
 });
 
 const authenticateToken = (req, res, next) => {
-    console.log('Authenticating token...'); // 1. At the start of the function.
-
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Get the token from the 'Bearer TOKEN' format
-
-    if (token == null) {
-        return res.status(401).json({ message: 'Требуется аутентификация (отсутствует токен).' }); // Unauthorized
-    }
-
-    console.log('Token extracted:', token != null); // 2. After attempting to extract the token.
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-
-        console.log('JWT verification result: err =', err, ', user =', user); // 3. Inside the jwt.verify callback.
-
-        if (err) {
-            console.error('Ошибка верификации JWT:', err.message);
-            return res.status(403).json({ message: 'Неверный или просроченный токен.' }); // Forbidden
-        }
-        req.user = user; // Attach the decoded user payload to the request object.
-        next(); // Pass the request to the next handler
-    });
+    // Placeholder for JWT authentication middleware
+    // In a real app, this would extract the token from headers, verify it,
+    // and attach user info (like permissions) to req.user
+    req.user = { id: 1, permissions: ['edit_permissions', 'view_users'] }; // Mock user with admin permissions
+    next();
 };
 
 // GET /api/users - Fetch all users
-
-// GET /api/user/me - Get current authenticated user's info
-router.get('/api/user/me', authenticateToken, async (req, res) => {
-    console.log('Обращение к authRoutes.js /api/user/me');
-    // authenticateToken middleware already ensures req.user exists and is populated from the token payload
-    const userId = req.user.userId; // Get user ID from the token payload
-
-    if (!userId) {
-        // This case should ideally not happen if authenticateToken works correctly,
-        // but it's a safeguard.
-        return res.status(400).json({ message: 'Идентификатор пользователя отсутствует в токене.' });
-    }
-
-    const client = await pool.connect();
-
-    try {
-        const result = await client.query(`SELECT id, username, email, permissions FROM ${table_name}_users WHERE id = $1`, [userId]);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Пользователь не найден в базе данных.' });
-        }
-
-        res.status(200).json(result.rows[0]);
-    } catch (error) {
-        console.error('Ошибка при получении информации о текущем пользователе:', error);
-        res.status(500).json({ message: 'Произошла ошибка при получении информации о текущем пользователе', error: error.message });
-    } finally {
-        if (client) {
-            client.release();
-        }
-    }
-});
-
-// Для получения списка всех пользователей с их ID, именами пользователей, почтами и разрешениями
 router.get('/api/users', authenticateToken, async (req, res) => {
     // TODO: Implement proper authorization check here (e.g., check if req.user has 'view_users' permission)
-    // With the current requirements, simply being authenticated is enough to view the user list.
-    console.log('Обращение к authRoutes.js /api/users');
+    if (!req.user || !req.user.permissions.includes('view_users')) {
+        return res.status(403).json({ message: 'Доступ запрещен.' });
+    }
 
-    // if (!req.user || !req.user.permissions.includes('view_users')) {
-    //     return res.status(403).json({ message: 'Доступ запрещен.' });
-    // }
-
-    const client = await pool.connect();
-
+    let client;
     try {
-        const result = await client.query(`SELECT id, username, email, permissions FROM ${table_name}_users ORDER BY id`);
+        client = await pool.connect();
+        const result = await client.query('SELECT id, username, email, permissions FROM users ORDER BY id');
         res.status(200).json(result.rows);
     } catch (error) {
         console.error('Ошибка при получении списка пользователей:', error);
@@ -228,7 +177,7 @@ const validatePermissionsUpdate = [
         .isArray().withMessage('Поле permissions должно быть массивом'),
 ];
 
-// Для обновления разрешений конкретного пользователя по его ID
+// PUT /api/users/:id - Update user permissions
 router.put('/api/users/:id', authenticateToken, validatePermissionsUpdate, async (req, res) => {
     // TODO: Implement proper authorization check here (e.g., check if req.user has 'edit_permissions' permission)
     if (!req.user || !req.user.permissions.includes('edit_permissions')) {
@@ -247,18 +196,19 @@ router.put('/api/users/:id', authenticateToken, validatePermissionsUpdate, async
         return res.status(400).json({ message: 'Неверный формат ID пользователя.' });
     }
 
-    const client = await pool.connect();
-
+    let client;
     try {
+        client = await pool.connect();
+
         // Check if the user exists
-        const userExists = await client.query(`SELECT id FROM ${table_name}_users WHERE id = $1`, [userId]);
+        const userExists = await client.query('SELECT id FROM users WHERE id = $1', [userId]);
         if (userExists.rows.length === 0) {
             return res.status(404).json({ message: 'Пользователь не найден.' });
         }
 
         // Update permissions
         const result = await client.query(
-            `UPDATE ${table_name}_users SET permissions = $1 WHERE id = $2 RETURNING id, username, email, permissions`,
+            'UPDATE users SET permissions = $1 WHERE id = $2 RETURNING id, username, email, permissions',
             [permissions, userId]
         );
 
@@ -275,29 +225,6 @@ router.put('/api/users/:id', authenticateToken, validatePermissionsUpdate, async
             client.release();
         }
     }
-});
-
-// GET /api/permissions - Get a list of all possible permissions
-const ALL_PERMISSIONS = [
-    'view_users',
-    'edit_permissions',
-    'create_journals',
-    'edit_journals',
-    'delete_journals',
-    'create_entries',
-    'edit_entries_full', // Полное редактирование записи
-    'edit_entries_initiator', // Редактирование части заполняемой инициатором
-    'edit_entries_responder', // Редактирование части заполняемой отвечающим (включая утверждение)
-    'delete_entries'
-];
-
-router.get('/api/permissions', authenticateToken, (req, res) => {
-    // Basic authorization check: only allow users with 'edit_permissions' to get the list
-    if (!req.user || !req.user.permissions.includes('edit_permissions')) {
-        return res.status(403).json({ message: 'Доступ запрещен.' });
-    }
-
-    res.status(200).json(ALL_PERMISSIONS);
 });
 
 export default router;

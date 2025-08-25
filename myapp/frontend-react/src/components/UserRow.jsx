@@ -1,30 +1,34 @@
 import React, { useState } from 'react';
-import { updateUserPermissions } from '../../api/auth';
+import { updateUserPermissions } from '../api/auth';
 
-const UserRow = ({ user, onPermissionsUpdated }) => {
-    const [isEditing, setIsEditing] = useState(false);
+const UserRow = ({ user, onUserUpdate, allPermissions }) => {
+    const [isEditing, setIsEditing] = useState(false); // State to control editing mode
+
     // Use a state variable to hold editable permissions, initially from user data
-    const [editablePermissions, setEditablePermissions] = useState(user.permissions.join(', '));
+    // Initialize editablePermissions as an array
+    const [editablePermissions, setEditablePermissions] = useState([...user.permissions]);
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleEditClick = () => {
         setIsEditing(true);
         // When starting edit, update editablePermissions from user's current permissions
-        setEditablePermissions(user.permissions.join(', '));
+        setEditablePermissions([...user.permissions]);
     };
 
     const handleSaveClick = async () => {
         setIsLoading(true);
         setError(null);
         try {
-            // Convert comma-separated string back to an array
-            const permissionsArray = editablePermissions.split(',').map(p => p.trim()).filter(p => p !== '');
+            // editablePermissions is already an array, no need to convert
+            const permissionsArray = editablePermissions;
             const updatedUser = await updateUserPermissions(user.id, permissionsArray);
 
-            // If successful, call the callback to update state in parent (AdminPage)
-            if (updatedUser && onPermissionsUpdated) {
-                onPermissionsUpdated(user.id, updatedUser.permissions);
+            if (updatedUser && updatedUser.user && onUserUpdate) {
+
+                console.log('UserRow: Data being sent to onUserUpdate:', updatedUser.user);
+
+                onUserUpdate(updatedUser.user); // <-- Передается только вложенный объект user
             }
 
             setIsEditing(false);
@@ -38,22 +42,48 @@ const UserRow = ({ user, onPermissionsUpdated }) => {
 
     const handleCancelClick = () => {
         setIsEditing(false);
-        // Revert changes on cancel
-        setEditablePermissions(user.permissions.join(', '));
+        // Revert changes on cancel - set editablePermissions back to the original user permissions array
+        setEditablePermissions([...user.permissions]);
+    };
+
+    // Handler for checkbox changes
+    const handlePermissionChange = (permission, isChecked) => {
+        setEditablePermissions(prevPermissions => {
+            if (isChecked) {
+                // Add permission if checked and not already in the array
+                return [...prevPermissions, permission];
+            } else {
+                // Remove permission if unchecked and in the array
+                return prevPermissions.filter(p => p !== permission);
+            }
+        });
     };
 
     return (
         <div>
-            <h3>{user.username} ({user.email})</h3>
+            <h3>{user.username} ({user.email}) - ID: {user.id}</h3> {/* Added user ID for clarity */}
             <p>Permissions:</p>
             {isEditing ? (
                 <div>
-                    <input
-                        type="text"
-                        value={editablePermissions}
-                        onChange={(e) => setEditablePermissions(e.target.value)}
-                        disabled={isLoading}
-                    />
+
+                    {/* Render checkboxes for each possible permission */}
+                    {allPermissions.map(permission => (
+                        <div key={permission}>
+
+                            <input
+
+                                type="checkbox"
+                                id={`${user.id}-${permission}`} // Unique ID for each checkbox
+                                checked={editablePermissions.includes(permission)}
+                                onChange={(e) => handlePermissionChange(permission, e.target.checked)}
+                                disabled={isLoading}
+
+                            />
+
+                            <label htmlFor={`${user.id}-${permission}`}>{permission}</label>
+                        </div>
+                    ))}
+
                     <button onClick={handleSaveClick} disabled={isLoading}>{isLoading ? 'Saving...' : 'Save'}</button>
                     <button onClick={handleCancelClick} disabled={isLoading}>Cancel</button>
                 </div>
