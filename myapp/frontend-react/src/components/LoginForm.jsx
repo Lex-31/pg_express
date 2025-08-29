@@ -16,7 +16,7 @@ const LoginForm = ({ onLoginSuccess }) => {
             const result = await loginUser(loginData);
             if (result && result.token) {
                 localStorage.setItem('jwtToken', result.token); // Store the token
-                setMessage('Вход выполнен успешно');
+                // setMessage('Вход выполнен успешно');
                 setEmailOrUsername('');
                 setPassword('');
                 if (onLoginSuccess) {

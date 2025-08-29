@@ -69,42 +69,42 @@ async function checkCredentials(username, password) {
 }
 
 /** Инициализация состояния авторизации при загрузке страницы */
-export function initAuthStatus() {
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const newBtn = document.getElementById('new-btn'); // Получаем ссылку на кнопку здесь
-    if (isAuthenticated) {
-        document.getElementById('auth-btn').textContent = 'Выход';
-        if (newBtn) { // Отображаем кнопку при загрузке, если авторизован
-            newBtn.style.display = 'block';
-        }
-    } else {
-        if (newBtn) { // Скрываем кнопку при загрузке, если не авторизован
-            newBtn.style.display = 'none';
-        }
-    }
-}
+// export function initAuthStatus() {
+//     const isAuthenticated = localStorage.getItem('isAuthenticated');
+//     const newBtn = document.getElementById('new-btn'); // Получаем ссылку на кнопку здесь
+//     if (isAuthenticated) {
+//         document.getElementById('auth-btn').textContent = 'Выход';
+//         if (newBtn) { // Отображаем кнопку при загрузке, если авторизован
+//             newBtn.style.display = 'block';
+//         }
+//     } else {
+//         if (newBtn) { // Скрываем кнопку при загрузке, если не авторизован
+//             newBtn.style.display = 'none';
+//         }
+//     }
+// }
 
 /** Навешивание событий для формы авторизации */
-export function addAuthEventListeners() {
-    document.getElementById('auth-btn').addEventListener('click', () => {
-        const authButton = document.getElementById('auth-btn');
-        if (authButton.textContent === 'Авторизация') {
-            document.getElementById('auth-form-container').style.display = 'block';
-        } else {
-            handleLogout();
-        }
-    });
+// export function addAuthEventListeners() {
+//     document.getElementById('auth-btn').addEventListener('click', () => {
+//         const authButton = document.getElementById('auth-btn');
+//         if (authButton.textContent === 'Авторизация') {
+//             document.getElementById('auth-form-container').style.display = 'block';
+//         } else {
+//             handleLogout();
+//         }
+//     });
 
-    // Закрытие формы авторизации по кнопке "Отмена" (если она есть)
-    const authCloseBtn = document.getElementById('auth-close-btn');
-    if (authCloseBtn) {
-        authCloseBtn.addEventListener('click', () => {
-            document.getElementById('auth-form-container').style.display = 'none';
-        });
-    }
+//     // Закрытие формы авторизации по кнопке "Отмена" (если она есть)
+//     const authCloseBtn = document.getElementById('auth-close-btn');
+//     if (authCloseBtn) {
+//         authCloseBtn.addEventListener('click', () => {
+//             document.getElementById('auth-form-container').style.display = 'none';
+//         });
+//     }
 
-    const authForm = document.getElementById('auth-form');
-    if (authForm) { // Проверка на существование формы
-        authForm.addEventListener('submit', handleAuth);
-    }
-}
+//     const authForm = document.getElementById('auth-form');
+//     if (authForm) { // Проверка на существование формы
+//         authForm.addEventListener('submit', handleAuth);
+//     }
+// }

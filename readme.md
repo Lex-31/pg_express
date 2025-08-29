@@ -198,3 +198,4 @@ WantedBy=multi-user.target
 ## Запуск проекта:
 - `node server.js` из директории myapp для запуска backend
 - `npm run dev` из директории myapp/frontend-react для запуска frontend
+- `npm run build` из директории myapp/frontend-react для сборки frontend

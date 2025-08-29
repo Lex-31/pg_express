@@ -25,9 +25,7 @@ const UserRow = ({ user, onUserUpdate, allPermissions }) => {
             const updatedUser = await updateUserPermissions(user.id, permissionsArray);
 
             if (updatedUser && updatedUser.user && onUserUpdate) {
-
                 console.log('UserRow: Data being sent to onUserUpdate:', updatedUser.user);
-
                 onUserUpdate(updatedUser.user); // <-- Передается только вложенный объект user
             }
 

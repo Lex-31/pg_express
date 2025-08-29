@@ -2,24 +2,100 @@ import { DataManager } from './dataManager.js';
 import { serverUrl } from './config.js';
 import {
     handleAuth,
-    initAuthStatus,
-    addAuthEventListeners
+    // initAuthStatus,
+    // addAuthEventListeners
 } from './shared/auth.js';
 import {
     openModal,
     closeModal,
     addCloseEventListeners
 } from './shared/modalUtils.js';
+// import { renderLoginForm } from '../frontend-react/dist/embed.js'; //глобально использоуется на объекте windiw
+
+// Определяем функцию, которая будет вызвана после успешного входа
+function handleLoginSuccess(userData) {
+    console.log('Вход выполнен успешно!');
+    console.log('Данные пользователя:', userData); // userData может содержать информацию о пользователе, если LoginForm ее передает
+
+    loadData();
+}
+
+// Функция, которая будет вызвана при выходе пользователя
+function handleLogout() {
+    console.log('Выход выполнен');
+
+    // Очистить токен и данные пользователя из localStorage
+    localStorage.removeItem('jwtToken');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userEmail');
+
+    loadData(); // Если loadData должна показать данные для неавторизованных
+}
 
 // Проверка состояния авторизации при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    initAuthStatus(); // Инициализация статуса авторизации при загрузке
-    addAuthEventListeners(); // Навешивание обработчиков для авторизации
-    loadData(); // Всегда загружаем данные при загрузке страницы
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (isAuthenticated) {
-        document.getElementById('new-btn').style.display = 'block';
+    console.log(window);
+
+    // Проверяем, есть ли токен в localStorage
+    const jwtToken = localStorage.getItem('jwtToken');
+
+    if (jwtToken) {  // Если токен есть, считаем пользователя авторизованным
+        // Скрываем форму логина и показываем информацию о пользователе
+        const loginFormContainer = document.getElementById('react-login-form-container');
+        if (loginFormContainer) {
+            loginFormContainer.style.display = 'none';
+        }
+
+        // Вам нужно будет извлечь имя пользователя и email из токена или другого места, где они хранятся
+        const username = localStorage.getItem('username') || 'тест'; // Пример получения из localStorage
+        const userEmail = localStorage.getItem('userEmail') || 'test@test.ru'; // Пример получения из localStorage
+
+        const userInfoContainer = document.getElementById('user-info-container');
+        const loggedInUserInfo = document.getElementById('logged-in-user-info');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        if (userInfoContainer && loggedInUserInfo && logoutBtn) {
+            loggedInUserInfo.textContent = `Вошел как: ${username} (${userEmail})`;
+            userInfoContainer.style.display = 'block';
+            // Добавить обработчик для кнопки "Выход"
+            logoutBtn.addEventListener('click', handleLogout, { once: true });
+        }
+
+        // Показать кнопку "Добавить новое" для авторизованного пользователя
+        const newButton = document.getElementById('new-btn');
+        if (newButton) {
+            newButton.style.display = 'block';
+        }
+
+        // Возможно, загрузить данные, доступные авторизованным
+        // loadData(); // Если данные зависят от авторизации
+    } else {
+        // Если токена нет, показываем форму логина и скрываем информацию о пользователе
+        const loginFormContainer = document.getElementById('react-login-form-container');
+        if (loginFormContainer) {
+            loginFormContainer.style.display = 'block';
+        }
+
+        const userInfoContainer = document.getElementById('user-info-container');
+        if (userInfoContainer) {
+            userInfoContainer.style.display = 'none';
+        }
+
+        // Скрыть кнопку "Добавить новое"
+        const newButton = document.getElementById('new-btn');
+        if (newButton) {
+            newButton.style.display = 'none';
+        }
+
+        // loadData(); // Возможно, загрузить данные для неавторизованных пользователей
     }
+
+    // initAuthStatus(); // Инициализация статуса авторизации при загрузке
+    // addAuthEventListeners(); // Навешивание обработчиков для авторизации
+    // const isAuthenticated = localStorage.getItem('isAuthenticated');
+    // if (isAuthenticated) {
+    //     document.getElementById('new-btn').style.display = 'block';
+    // }
 
     // Обработчик для кнопки "ОКПД, ОКВЭД / Документация"
     document.getElementById('toggle-doc-btn').addEventListener('click', () => {
@@ -60,6 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addCloseEventListeners('new-form-container', '#form-close-btn', '.modal-backdrop'); // Добавление обработчика клика по фону модального окна и кнопке закрытия
+
+    // Вызов функции для рендеринга формы входа React
+    renderLoginForm('react-login-form-container', handleLoginSuccess); // Вызываем импортированную функцию
+
+    loadData(); // Всегда загружаем данные при загрузке страницы
 });
 
 /** GET запрос загружает данные из сервера и обновляет таблицу */
@@ -95,9 +176,9 @@ async function loadData() {
                 <td class="okpd-okved-col">${item.prod_okved}</td>
                 <td class="doc-col ${item.prod_dir === '' ? 'fail-dir' : ''}" style="display: none;">${item.docs ? formatDocs(item.docs) : ''}</td >
             `;
-            if (document.getElementById('auth-btn').textContent === 'Выход') {
-                tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши
-            }
+            // if (document.getElementById('auth-btn').textContent === 'Выход') {
+            tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши
+            // }
             tr.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши
                 if (!event.target.closest('a')) { // на ссылках оставляем дефолное выпадающее меню
                     event.preventDefault(); //на остальном контенте...
