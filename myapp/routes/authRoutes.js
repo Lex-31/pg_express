@@ -124,7 +124,16 @@ router.post('/api/login', validateLogin, async (req, res) => {
         }
 
         // Generate JWT
-        const token = jwt.sign({ userId: user.id, permissions: user.permissions }, JWT_SECRET, { expiresIn: '1h' }); // Token expires in 1 hour
+        const token = jwt.sign(
+            {
+                userId: user.id,
+                username: user.username, // <--- ДОБАВЛЕНО
+                email: user.email,       // <--- ДОБАВЛЕНО
+                permissions: user.permissions,
+            },
+            JWT_SECRET,
+            { expiresIn: '1000h' } // Token expires in 1000 hour
+        );
 
         res.status(200).json({ message: 'Вход выполнен успешно', token });
 

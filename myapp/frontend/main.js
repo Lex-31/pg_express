@@ -2,8 +2,8 @@ import { DataManager } from './dataManager.js';
 import { serverUrl } from './config.js';
 import {
     handleAuth,
-    // initAuthStatus,
-    // addAuthEventListeners
+    //     // initAuthStatus,
+    //     // addAuthEventListeners
 } from './shared/auth.js';
 import {
     openModal,
@@ -12,97 +12,78 @@ import {
 } from './shared/modalUtils.js';
 // import { renderLoginForm } from '../frontend-react/dist/embed.js'; //глобально использоуется на объекте windiw
 
-// Определяем функцию, которая будет вызвана после успешного входа
-function handleLoginSuccess(userData) {
-    console.log('Вход выполнен успешно!');
-    console.log('Данные пользователя:', userData); // userData может содержать информацию о пользователе, если LoginForm ее передает
+/** Новая функция для обновления UI в зависимости от статуса авторизации
+ * @description функция будет отвечать исключительно за скрытие/отображение формы логина, информации о пользователе и кнопки "Добавить новое" на основе наличия JWT токена в localStorage */
+function updateAuthUI() {
+    const jwtToken = localStorage.getItem('jwtToken');
+    const loginFormContainer = document.getElementById('react-login-form-container');
+    const userInfoContainer = document.getElementById('user-info-container');
+    const loggedInUserInfo = document.getElementById('logged-in-user-info');
+    const logoutBtn = document.getElementById('logout-btn');
+    const newButton = document.getElementById('new-btn');
 
-    loadData();
+    if (jwtToken) {    // Пользователь авторизован
+        if (loginFormContainer) loginFormContainer.style.display = 'none'; //скрываем форму входа
+
+        const username = localStorage.getItem('username'); // Берем из localStorage
+        const userEmail = localStorage.getItem('userEmail'); // Берем из localStorage
+
+        if (userInfoContainer && loggedInUserInfo && logoutBtn) { //показывать инфо о пользователе и кнопку выхода из профиля
+            loggedInUserInfo.textContent = `Вошел как: ${username} (${userEmail})`; //подстановка данных о пользователе из localstorage
+            userInfoContainer.style.display = 'block'; //отображать контейнер с инфо пользователя и кнопкой выхода
+            if (!logoutBtn.dataset.listenerAttached) { // проверяем что нет обработчика на кнопке выхода
+                logoutBtn.addEventListener('click', handleLogout);
+                logoutBtn.dataset.listenerAttached = 'true'; // Помечаем, что обработчик навешен
+            }
+        }
+
+        if (newButton) newButton.style.display = 'block'; //отображаем кнопку Добавить новое
+    } else {    // Пользователь не авторизован
+        if (loginFormContainer) loginFormContainer.style.display = 'block'; // оборажаем форму входа
+        if (userInfoContainer) userInfoContainer.style.display = 'none'; // не отображать контейнер с инфо пользователя и кнопкой выхода
+        if (newButton) newButton.style.display = 'none'; // не отображаем кнопку Добавить новое
+        if (logoutBtn && logoutBtn.dataset.listenerAttached) {  // Удаляем обработчик выхода, если он был навешен
+            logoutBtn.removeEventListener('click', handleLogout);
+            logoutBtn.dataset.listenerAttached = '';
+        }
+    }
 }
 
-// Функция, которая будет вызвана при выходе пользователя
-function handleLogout() {
-    console.log('Выход выполнен');
+/** Функция, которая будет вызвана после успешного входа
+ * @param userData объект с данными о пользователе, взятыми из JWT токена */
+function handleLoginSuccess(userData) {
+    if (userData && userData.username && userData.email) {  // Сохраняем данные пользователя в localStorage, если они зашифрованы в JWT токене
+        localStorage.setItem('username', userData.username);
+        localStorage.setItem('userEmail', userData.email);
+    } else {
+        console.warn('LoginForm.jsx не передал данные пользователя (username и/или email в объекте userData) в handleLoginSuccess');
+        localStorage.setItem('username', 'Неизвестный пользователь');
+        localStorage.setItem('userEmail', 'Неизвестный email');
+    }
+    updateAuthUI(); // Обновляем UI
+    loadData();     // Загружаем данные (если нужно обновить после входа)
+}
 
-    // Очистить токен и данные пользователя из localStorage
+/** Функция, которая будет вызвана при выходе пользователя
+ * @description Очищает токен JWT, username и userEmail */
+function handleLogout() {
     localStorage.removeItem('jwtToken');
     localStorage.removeItem('username');
     localStorage.removeItem('userEmail');
-
-    loadData(); // Если loadData должна показать данные для неавторизованных
+    updateAuthUI(); // Обновляем UI
+    loadData();     // Загружаем данные (если нужно обновить после входа)
 }
 
 // Проверка состояния авторизации при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    console.log(window);
+    updateAuthUI(); // Обновляем UI
+    window.renderLoginForm('react-login-form-container', handleLoginSuccess); // Вызов функции для рендеринга формы входа React. Вызываем импортированную глобально функцию из embed.js
+    loadData(); // Всегда загружаем данные при загрузке страницы
 
-    // Проверяем, есть ли токен в localStorage
-    const jwtToken = localStorage.getItem('jwtToken');
-
-    if (jwtToken) {  // Если токен есть, считаем пользователя авторизованным
-        // Скрываем форму логина и показываем информацию о пользователе
-        const loginFormContainer = document.getElementById('react-login-form-container');
-        if (loginFormContainer) {
-            loginFormContainer.style.display = 'none';
-        }
-
-        // Вам нужно будет извлечь имя пользователя и email из токена или другого места, где они хранятся
-        const username = localStorage.getItem('username') || 'тест'; // Пример получения из localStorage
-        const userEmail = localStorage.getItem('userEmail') || 'test@test.ru'; // Пример получения из localStorage
-
-        const userInfoContainer = document.getElementById('user-info-container');
-        const loggedInUserInfo = document.getElementById('logged-in-user-info');
-        const logoutBtn = document.getElementById('logout-btn');
-
-        if (userInfoContainer && loggedInUserInfo && logoutBtn) {
-            loggedInUserInfo.textContent = `Вошел как: ${username} (${userEmail})`;
-            userInfoContainer.style.display = 'block';
-            // Добавить обработчик для кнопки "Выход"
-            logoutBtn.addEventListener('click', handleLogout, { once: true });
-        }
-
-        // Показать кнопку "Добавить новое" для авторизованного пользователя
-        const newButton = document.getElementById('new-btn');
-        if (newButton) {
-            newButton.style.display = 'block';
-        }
-
-        // Возможно, загрузить данные, доступные авторизованным
-        // loadData(); // Если данные зависят от авторизации
-    } else {
-        // Если токена нет, показываем форму логина и скрываем информацию о пользователе
-        const loginFormContainer = document.getElementById('react-login-form-container');
-        if (loginFormContainer) {
-            loginFormContainer.style.display = 'block';
-        }
-
-        const userInfoContainer = document.getElementById('user-info-container');
-        if (userInfoContainer) {
-            userInfoContainer.style.display = 'none';
-        }
-
-        // Скрыть кнопку "Добавить новое"
-        const newButton = document.getElementById('new-btn');
-        if (newButton) {
-            newButton.style.display = 'none';
-        }
-
-        // loadData(); // Возможно, загрузить данные для неавторизованных пользователей
-    }
-
-    // initAuthStatus(); // Инициализация статуса авторизации при загрузке
-    // addAuthEventListeners(); // Навешивание обработчиков для авторизации
-    // const isAuthenticated = localStorage.getItem('isAuthenticated');
-    // if (isAuthenticated) {
-    //     document.getElementById('new-btn').style.display = 'block';
-    // }
-
-    // Обработчик для кнопки "ОКПД, ОКВЭД / Документация"
-    document.getElementById('toggle-doc-btn').addEventListener('click', () => {
+    document.getElementById('toggle-doc-btn').addEventListener('click', () => {  // Обработчик для кнопки "ОКПД, ОКВЭД / Документация"
         const toggleBtn = document.getElementById('toggle-doc-btn');
         const okpdOkvedCols = document.querySelectorAll('.okpd-okved-col');
         const docCols = document.querySelectorAll('.doc-col');
-
         if (toggleBtn.textContent === 'Документация') {
             toggleBtn.textContent = 'ОКПД, ОКВЭД';
             okpdOkvedCols.forEach(col => col.style.display = 'none');
@@ -116,8 +97,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Обработчик для кнопки "Добавить новое"
-    document.getElementById('new-btn').addEventListener('click', async () => {
+    document.getElementById('new-btn').addEventListener('click', async () => {   // Обработчик для кнопки "Добавить новое"
+        const jwtToken = localStorage.getItem('jwtToken');
+        if (!jwtToken) {
+            alert('Для добавления записей необходимо авторизоваться.');
+            return;
+        }
         const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
         const select = document.getElementById('new-category_id');
         select.innerHTML = '';
@@ -136,21 +121,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addCloseEventListeners('new-form-container', '#form-close-btn', '.modal-backdrop'); // Добавление обработчика клика по фону модального окна и кнопке закрытия
-
-    // Вызов функции для рендеринга формы входа React
-    renderLoginForm('react-login-form-container', handleLoginSuccess); // Вызываем импортированную функцию
-
-    loadData(); // Всегда загружаем данные при загрузке страницы
 });
 
-/** GET запрос загружает данные из сервера и обновляет таблицу */
+/** Асинхронная функция делает GET запрос к БД, загружает данные с сервера и обновляет таблицу */
 async function loadData() {
-
     const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
     const products = await DataManager.fetchProducts();  // Загрузка изделий
-
     const tableBody = document.getElementById('table-body');
     tableBody.innerHTML = ''; // Очистка таблицы перед загрузкой данных
+
+    const jwtToken = localStorage.getItem('jwtToken'); // Получаем токен один раз перед циклом для эффективности
 
     categories.forEach(category => {  //проходимся по всем категориям
         const categoryCode = category.category_id.join('.');
@@ -160,8 +140,6 @@ async function loadData() {
         `;
         tableBody.append(categoryRow);
 
-        // Фильтрация изделий по текущей категории
-        // JSON.stringify(item.category_id) === JSON.stringify(category.category_id)
         const categoryItems = products.filter(item => JSON.stringify(item.category_code) === JSON.stringify(category.category_id));  //сравниваем изделия и категории по колонке массива чисел
 
         categoryItems.forEach(item => { //заполнение строк таблицы изделий
@@ -176,15 +154,17 @@ async function loadData() {
                 <td class="okpd-okved-col">${item.prod_okved}</td>
                 <td class="doc-col ${item.prod_dir === '' ? 'fail-dir' : ''}" style="display: none;">${item.docs ? formatDocs(item.docs) : ''}</td >
             `;
-            // if (document.getElementById('auth-btn').textContent === 'Выход') {
-            tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши
-            // }
-            tr.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши
-                if (!event.target.closest('a')) { // на ссылках оставляем дефолное выпадающее меню
-                    event.preventDefault(); //на остальном контенте...
-                    showContextMenu(event, item); //...открываем кастомное выпадающее меню, event - для позиционирования меню рядом с кликом, item - объект с данными о кликнутом изделии
-                }
-            });
+
+            if (jwtToken) {   // Навешиваем обработчики для редактирования и контекстного меню только если пользователь авторизован
+                tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши для редактирования позиции
+                tr.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши для кастомного контекстного меню
+                    if (!event.target.closest('a')) { // на ссылках оставляем дефолное выпадающее меню
+                        event.preventDefault(); //на остальном контенте...
+                        showContextMenu(event, item); //...открываем кастомное выпадающее меню, event - для позиционирования меню рядом с кликом, item - объект с данными о кликнутом изделии
+                    }
+                });
+            }
+
             tableBody.append(tr);
         });
     });
@@ -209,7 +189,6 @@ async function loadData() {
             link.addEventListener('click', (event) => {
                 event.preventDefault(); //не будем пытаться открыть этот ресурс в новой вкладке
                 const filePath = link.getAttribute('data-link'); // ссылка на документ с локальной машины вида \\fs3\...
-
                 fetch(`http://${serverUrl}/api/get-file`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -218,7 +197,6 @@ async function loadData() {
                     if (response.ok) { return response.json(); } //ответ преобразовываем в JSON
                     throw new Error('Network response was not ok.');
                 }).then(data => {
-                    console.log('Ссылка на статический файл, который открывается в новой вкладке', data.url);
                     window.open(data.url, '_blank'); //получаем ссылку на локльный ресурс, открываем файл в новой вкладке
                 }).catch(error => console.error('Error fetching the PDF:', error));
             });
@@ -226,16 +204,26 @@ async function loadData() {
     });
 }
 
-function formatDocs(docs) { //создает ссылку и раскрашивает документы, есть ссылка - зеленый, нет ссылки - красный
+/** Функция создает ссылку и раскрашивает документы, есть ссылка - зеленый, нет ссылки - красный
+ * @param {*} docs массив документов для конкретной записи
+ * @returns возвращает HTML код раскрашенных ссылок на прикрепленные документы */
+function formatDocs(docs) {
     return docs.map(doc => {
-        // const encodedLink = doc.doc_link ? doc.doc_link.replace(/ /g, '%20') : '';  //замена пробелов в ссылке на %20
         const encodedLink = doc.doc_link // ссылка формата как она хранится  в БД \\fs3\Производственный архив центрального офиса\ЕИУС.468622.001_ППСЦ\ЭД\ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf
         const link = encodedLink ? `<a href="${encodedLink}" data-link="${encodedLink}" class="link-to-doc" style="color: green;" target="_blank">${doc.doc_name}</a>` : `<span style="color: red;">${doc.doc_name}</span>`; //ссылка существует - зеленый цвет выбираем, отсутвует - красный
         return link; //возвращает в новый массив(map) готовых HTML ссылок
     }).join(' '); //массив готовых HTML ссылок преобразовывает в строку где ссылки разделены пробелом
 }
 
-async function openEditForm(id) { //GET запрос загружает данные конкретной записи по id 
+/** Асинхронная функция делает GET запрос к БД, загружает данные конкретной записи по id в форму для редактирования
+ * @param {*} id идентификатор записи */
+async function openEditForm(id) { // 
+    const jwtToken = localStorage.getItem('jwtToken');  // Проверка авторизации перед открытием формы редактирования
+    if (!jwtToken) {
+        alert('Для редактирования записей необходимо авторизоваться.');
+        return;
+    }
+
     const data = await DataManager.fetchProductById(id);
 
     document.getElementById('new-id').textContent = data.id;
@@ -273,15 +261,14 @@ async function openEditForm(id) { //GET запрос загружает данн
         addDocField(doc.doc_name, doc.doc_link);
     });
 
-
     openModal('new-form-container');
     document.getElementById('new-form-container').style.display = 'block'; //это повторяется в openModal возможно можно удалить эту строку
     document.querySelector('.modal-backdrop').style.display = 'block';
 }
 
-/**добавление нового поля для документа. ***можно поле docName заполнять по умолчанию например NONE
+/** добавление нового поля для документа. ***можно поле docName заполнять по умолчанию например NONE
  * @param docName название документа сокращенно
- * @param docLink ссылка на документ*/
+ * @param docLink ссылка на документ */
 function addDocField(docName = '', docLink = '') {
     const docContainer = document.getElementById('doc-container');
     const docDiv = document.createElement('div');
@@ -302,7 +289,15 @@ document.getElementById('add-doc-btn').addEventListener('click', () => { //ко�
     addDocField();
 });
 
-async function updateRow(id) { //Отправляет PUT запрос на сервер с обновленными данными
+/** Асинхронная функция отправляет PUT запрос на сервер с обновленными данными записи
+ * @param {*} id идентификатор записи */
+async function updateRow(id) {
+    const jwtToken = localStorage.getItem('jwtToken');
+    if (!jwtToken) {
+        alert('Для обновления записей необходимо авторизоваться.');
+        return;
+    }
+
     const category_id = document.getElementById('new-category_id').value.split(',').map(Number);   //"1,1" -> [1, 2]. Выбираем HTML элемент <select>(выпадающ. список катег.), value - берем  значение "1,1" выбранного option, split - разделяем строку на массив подстрок ("1,2,3" -> ["1", "2", "3"]) используя разделитель ",", map - каждое значение массива строк ["1", "2", "3"] преобразуется в массив чисел [1, 2, 3]
     const item_number = document.getElementById('new-item_number').value; //порядковый номер изделия из формы
     const docFields = document.querySelectorAll('.doc-field'); //выбрать все строки с документами в форме изделия
@@ -323,29 +318,39 @@ async function updateRow(id) { //Отправляет PUT запрос на се
         prod_dir: document.getElementById('new-prod_dir').value
     };
 
-    // Извлечение имени пользователя
-    const username = localStorage.getItem('username') || 'anonymous';
+    const username = localStorage.getItem('username') || 'anonymous';  // Извлечение имени пользователя
 
     await DataManager.updateProduct(id, data, username); // Отправляем PUT запрос на сервер для обновления записи
-    // document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
     closeModal('new-form-container'); // Закрываем модальное окно
     document.getElementById('new-form').reset(); // Сброс формы
-    loadData();
+    loadData();  // обновление списка записей
 }
 
-//удаление позиции по id
+/** Асинхронная функция, удаляет запись из БД
+ * @param {*} id идентификатор записи */
 async function deleteRow(id) {
+    const jwtToken = localStorage.getItem('jwtToken');
+    if (!jwtToken) {
+        alert('Для удаления записей необходимо авторизоваться.');
+        return;
+    }
 
     const username = localStorage.getItem('username') || 'anonymous';  // Извлечение имени пользователя
 
     await DataManager.deleteProduct(id, username); // Отправляем DELETE запрос на сервер для удаления записи
-    // document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
     closeModal('new-form-container'); // Закрываем модальное окно
     document.getElementById('new-form').reset(); // Сброс формы
     loadData();
 }
 
-export async function createRow() { //Отправляет POST запрос на сервер для создания новой записи
+/** Асинхронная экспортируемая функция, отправляет POST запрос на сервер для создания новой записи */
+export async function createRow() {
+    const jwtToken = localStorage.getItem('jwtToken');
+    if (!jwtToken) {
+        alert('Для создания записей необходимо авторизоваться.');
+        return;
+    }
+
     const category_id = document.getElementById('new-category_id').value.split(',').map(Number);  //"1,1" -> [1, 2]. Выбираем HTML элемент <select>(выпадающ. список катег.), value - берем значение "1,1" выбранного option, split - разделяем строку на массив подстрок ("1,2,3" -> ["1", "2", "3"]) используя разделитель ",", map - каждое значение массива строк ["1", "2", "3"] преобразуется в массив чисел [1, 2, 3]
     const item_number = document.getElementById('new-item_number').value; //порядковый номер изделия из формы
     const docFields = document.querySelectorAll('.doc-field');
@@ -366,23 +371,17 @@ export async function createRow() { //Отправляет POST запрос н�
         prod_dir: document.getElementById('new-prod_dir').value
     };
 
-    // Извлечение имени пользователя
-    const username = localStorage.getItem('username') || 'anonymous';
+    const username = localStorage.getItem('username') || 'anonymous';  // Извлечение имени пользователя
 
     await DataManager.createProduct(data, username); // POST запрос на создание изделия
-    // document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
     closeModal('new-form-container'); // Закрываем модальное окно
     document.getElementById('new-form').reset(); // Сброс формы
     loadData();
 }
 
-// Загрузка данных при загрузке страницы
-// loadData();
-
-
 /** Функция для отображения контекстного меню
  * @param event событие клика правой кнопкой мыши, координаты клика
- * @param item данные об изделии из БД*/
+ * @param item данные об изделии из БД */
 function showContextMenu(event, item) {
 
     // удаление предыдущего контекстного меню
@@ -426,7 +425,9 @@ function showContextMenu(event, item) {
     }, { once: true });
 }
 
-// Функция для архивирования документов
+/** Асинхронная функция для архивирования документов
+ * @param {*} item данные об изделии из БД
+ * @returns */
 async function archiveDocs(item) {
     const docs = item.docs; //массив объектов на каждый из документов(doc_name + doc_link)
     console.log('Начало архивации, документы: ', docs);
@@ -528,13 +529,12 @@ async function archiveDocs(item) {
     console.log(`'${item.prod_number}'_'${item.prod_mark}'_'${item.prod_name}'`);
 }
 
-//Функция показа содержимого директории изделия
+/** Асинхронная функция показа содержимого директории изделия
+ * @param {*} directoryUrl путь директории на сервере, например: \\fs3\Технический архив\ЕИУС.468622.001_ППСЦ\ЭД */
 async function openDirectoryModal(directoryUrl) { // directoryUrl === \\fs3\Технический архив\ЕИУС.468622.001_ППСЦ\ЭД
     const modal = document.getElementById('directory-modal');
     const modalContent = document.getElementById('directory-content');
     const backdrop = document.querySelector('.modal-backdrop');
-
-    console.log('directoryUrl', directoryUrl);
 
     // Функция для загрузки содержимого директории
     const loadDirectoryContent = async (path) => {
@@ -614,8 +614,7 @@ async function openDirectoryModal(directoryUrl) { // directoryUrl === \\fs3\Те
     modal.style.display = 'block';
     backdrop.style.display = 'block';
 
-    // Закрытие модального окна
-    document.querySelector('.close-button').onclick = () => {
+    document.querySelector('.close-button').onclick = () => {   // Закрытие модального окна
         modal.style.display = 'none';
         backdrop.style.display = 'none';
     };

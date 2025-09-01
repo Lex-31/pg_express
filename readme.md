@@ -194,6 +194,9 @@ WantedBy=multi-user.target
 Логи будут записываться в журнал (journal), который можно просматривать с помощью команды
 –	journalctl -u portal.service -b
 
+## Администрирование
+- `lsof -i :3000` проверить какие процессы на 3000 порту
+- `systemctl restart nginx` перезагрузить nginx при изменении конфигурации
 
 ## Запуск проекта:
 - `node server.js` из директории myapp для запуска backend

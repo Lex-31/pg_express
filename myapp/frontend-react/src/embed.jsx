@@ -25,3 +25,4 @@ function renderLoginForm(elementId, onLoginSuccessCallback) {
 }
 
 window.renderLoginForm = renderLoginForm;
+// export { renderLoginForm }; // Export renderLoginForm;

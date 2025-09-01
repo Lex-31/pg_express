@@ -12076,10 +12076,24 @@ const LoginForm = ({ onLoginSuccess }) => {
       const result = await loginUser(loginData);
       if (result && result.token) {
         localStorage.setItem("jwtToken", result.token);
+        let decodedData = {};
+        try {
+          const payloadBase64 = result.token.split(".")[1];
+          const decodedPayload = JSON.parse(atob(payloadBase64));
+          console.log("Полностью декодированный токен (payload):", decodedPayload);
+          decodedData = {
+            username: decodedPayload.username,
+            // Убедитесь, что поля в вашем токене называются именно так
+            email: decodedPayload.email
+          };
+          console.log("Данные для передачи:", decodedData);
+        } catch (e) {
+          console.error("Ошибка декодирования токена:", e);
+        }
         setEmailOrUsername("");
         setPassword("");
         if (onLoginSuccess) {
-          onLoginSuccess();
+          onLoginSuccess(decodedData);
         }
       }
     } catch (error) {
