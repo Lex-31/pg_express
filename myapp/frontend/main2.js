@@ -1,21 +1,32 @@
 import { DataManager } from './dataManager.js';
-// import {
-//     handleAuth,
-//     handleLogout,
-//     initAuthStatus,
-//     addAuthEventListeners
-// } from './shared/auth.js';
 import {
     openModal,
     closeModal,
     addCloseEventListeners
 } from './shared/modalUtils.js';
-//Для ЖП
+//Для списка ЖП
+
+/** Парсит JWT токен из localStorage и возвращает массив прав пользователя.
+ * @returns {string[]} Массив прав (permissions) или пустой массив, если токен не найден или некорректен */
+function getUserPermissions() {
+    const jwtToken = localStorage.getItem('jwtToken');
+    if (!jwtToken) return [];
+    try {
+        const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+        console.log(payload);
+
+        return payload.permissions || [];
+    } catch (error) {
+        console.error('Ошибка при парсинге JWT токена:', error);
+        return [];
+    }
+}
 
 /** Новая функция для обновления UI в зависимости от статуса авторизации
  * @description функция будет отвечать исключительно за скрытие/отображение формы логина, информации о пользователе и кнопки "Добавить новое" на основе наличия JWT токена в localStorage */
 function updateAuthUI() {
     const jwtToken = localStorage.getItem('jwtToken');
+    const permissions = getUserPermissions();
     const loginFormContainer = document.getElementById('react-login-form-container');
     const userInfoContainer = document.getElementById('user-info-container');
     const loggedInUserInfo = document.getElementById('logged-in-user-info');
@@ -28,7 +39,7 @@ function updateAuthUI() {
         const username = localStorage.getItem('username'); // Берем из localStorage
         const userEmail = localStorage.getItem('userEmail'); // Берем из localStorage
 
-        if (userInfoContainer && loggedInUserInfo && logoutBtn) { //показывать инфо о пользователе и кнопку выхода из профиля
+        if (userInfoContainer && loggedInUserInfo && logoutBtn) { //если на старнице html есть нужные элементы, то показывать инфо о пользователе и кнопку выхода из профиля
             loggedInUserInfo.textContent = `Вошел как: ${username} (${userEmail})`; //подстановка данных о пользователе из localstorage
             userInfoContainer.style.display = 'block'; //отображать контейнер с инфо пользователя и кнопкой выхода
             if (!logoutBtn.dataset.listenerAttached) { // проверяем что нет обработчика на кнопке выхода
@@ -37,7 +48,9 @@ function updateAuthUI() {
             }
         }
 
-        if (newBtn) newBtn.style.display = 'block'; //отображаем кнопку Добавить новое
+        if (newBtn) {
+            newBtn.style.display = permissions.includes('create_zp') ? 'block' : 'none'; // отображаем кнопку Добавить новое если есть права create_zp
+        }
     } else {    // Пользователь не авторизован
         if (loginFormContainer) loginFormContainer.style.display = 'block'; // оборажаем форму входа
         if (userInfoContainer) userInfoContainer.style.display = 'none'; // не отображать контейнер с инфо пользователя и кнопкой выхода
@@ -46,7 +59,30 @@ function updateAuthUI() {
             logoutBtn.removeEventListener('click', handleLogout);
             logoutBtn.dataset.listenerAttached = '';
         }
+        document.getElementById('table-body').innerHTML = ''; // Очищаем таблицу, если пользователь не авторизован
     }
+}
+
+/** Функция, которая будет вызвана после успешного входа
+ * @param userData объект с данными о пользователе, взятыми из JWT токена */
+function handleLoginSuccess(userData) {
+    if (userData && userData.username && userData.email) {  // Сохраняем данные пользователя в localStorage, если они зашифрованы в JWT токене
+        localStorage.setItem('username', userData.username);
+        localStorage.setItem('userEmail', userData.email);
+    } else {
+        console.warn('LoginForm.jsx не передал данные пользователя (username и/или email в объекте userData) в handleLoginSuccess'); //debag
+    }
+    updateAuthUI(); // Обновляем UI
+    loadData();     // Загружаем данные (если нужно обновить после входа)
+}
+
+/** Функция, которая будет вызвана при выходе пользователя
+ * @description Очищает токен JWT, username и userEmail */
+function handleLogout() {
+    localStorage.removeItem('jwtToken');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userEmail');
+    updateAuthUI(); // Обновляем UI
 }
 
 async function loadData() { //GET запрос загружает данные из сервера и обновляет таблицу
@@ -103,25 +139,25 @@ async function loadData() { //GET запрос загружает данные �
     sortZp(); //сортировка по счетчикам записей после заполнения таблицы строками
 }
 
-async function createRow() { //Отправляет POST запрос на сервер для создания нового ЖП
-    const data = {
+/** Асинхронная функция, отправляет POST запрос на сервер для создания нового журнала */
+async function createZp() { //Отправляет POST запрос на сервер для создания нового ЖП
+    const data = { //забираем из формы заполненые данные
         id: document.getElementById('new-id').value,
         zp_name: document.getElementById('new-zp_name').value
     };
-    // Извлечение имени пользователя
-    const username = localStorage.getItem('username') || 'anonymous';
+    try {
+        await DataManager.createZp(data); // POST запрос на создание изделия
 
-    const response = await DataManager.createZp(data, username); // POST запрос на создание изделия
-    if (!response.id) { //если не вернулось id созданного ЖП
-        alert(`Запись не создана! ${response}`); //из модели получаем сообщение об ошибке (return err.detail)
-        return; //выходим из функции
+        closeModal('new-form-container');// Закрываем модальное окно
+        document.getElementById('new-form').reset(); // Сброс формы
+        loadData();
+    } catch (error) {
+        console.error('Ошибка при создании ЖП:', error);
+        alert('Не удалось создать ЖП: ' + (error.data?.detail || error.message));
     }
-
-    document.getElementById('form-close-btn').click(); // Программно вызываем событие нажатия на кнопку закрытия формы "Отмена"
-    document.getElementById('new-form').reset();
-    loadData();
 }
 
+/** Функция сортировки списка ЖП */
 function sortZp() { //сортировка ЖП по 3 столбцам
     const headers = {
         'notes-total': { element: document.getElementById('notes-total'), order: null },
@@ -144,7 +180,8 @@ function sortZp() { //сортировка ЖП по 3 столбцам
         });
     });
 
-    function toggleSortOrder(headerId) {  //переключает порядок сортировки для выбранного заголовка и сбрасывает порядок сортировки для других заголовков
+    /** Функция переключает порядок сортировки для выбранного заголовка и сбрасывает порядок сортировки для других заголовков */
+    function toggleSortOrder(headerId) {
         Object.keys(headers).forEach(key => {  // Сбрасываем порядок сортировки для всех заголовков
             if (key !== headerId) {
                 headers[key].order = null;
@@ -166,13 +203,10 @@ function sortZp() { //сортировка ЖП по 3 столбцам
         localStorage.setItem(headerId, header.order || ''); // Сохраняем состояние сортировки в localStorage
     }
 
-    function updateHeaderUI(header) { // обновляет UI заголовка, добавляя/удаляя иконку сортировки в зависимости от текущего порядка
-        const arrowSpan = header.element.querySelector('.sort-arrow');
-
-        // Удаляем существующую стрелочку, если она есть
-        if (arrowSpan) {
-            arrowSpan.remove();
-        }
+    /** Функция обновляет UI заголовка, добавляя/удаляя иконку сортировки в зависимости от текущего порядка */
+    function updateHeaderUI(header) {
+        const arrowSpan = header.element.querySelector('.sort-arrow'); //стрелочка сортировки
+        if (arrowSpan) arrowSpan.remove();  // Удаляем существующую стрелочку, если она есть
 
         // Добавляем новую стрелочку, если есть порядок сортировки
         if (header.order === 'asc' || header.order === 'desc') {
@@ -183,11 +217,11 @@ function sortZp() { //сортировка ЖП по 3 столбцам
             } else {
                 newArrowSpan.textContent = ' ↓';
             }
-            // Добавляем стрелочку после текста заголовка
-            header.element.append(newArrowSpan);
+            header.element.append(newArrowSpan); // Добавляем стрелочку после текста заголовка
         }
     }
 
+    /** Функция сортирует строки таблицы */
     function sortTable() {
         const tableBody = document.getElementById('table-body');
         const rows = Array.from(tableBody.querySelectorAll('tr'));
@@ -234,40 +268,31 @@ function sortZp() { //сортировка ЖП по 3 столбцам
         });
 
         // Перерисовываем таблицу
-        tableBody.innerHTML = '';
-        rows.forEach(row => tableBody.appendChild(row));
+        tableBody.innerHTML = ''; //очищаем таблицу
+        rows.forEach(row => tableBody.appendChild(row)); //вставляем строки в таблицу
     }
     sortTable();  // Вызываем функцию сортировки при загрузке страницы
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    initAuthStatus();
-    addAuthEventListeners(); // Добавляем обработчики событий из shared/auth.js
+    updateAuthUI();
 
-    // const isAuthenticated = localStorage.getItem('isAuthenticated');
-    // const newBtn = document.getElementById('new-btn');
-    // if (isAuthenticated) { newBtn.style.display = 'block'; }
+    if (window.renderLoginForm) { // Проверяем, импортирована ли функция renderLoginForm через глобальный объект window
+        window.renderLoginForm('react-login-form-container', handleLoginSuccess); // Вызов функции для рендеринга формы входа React. Вызываем импортированную глобально функцию из embed.js
+    } else {
+        console.error('Функция renderLoginForm не найдена. Убедитесь, что embed.js загружен.');
+    }
 
+    if (localStorage.getItem('jwtToken')) { // Пользователь авторизован
+        loadData(); // загружаем данные при загрузке страницы
+    }
 
-    // Навешивание событий на элементы управления (конпку создания новой записи и закрытие формы новой записи)
-    //открывает форму при создании нового ЖП
-    document.getElementById('new-btn').addEventListener('click', async () => {
-        openModal('new-form-container');
-        document.getElementById('form-submit-btn').textContent = 'Создать';
-        document.getElementById('form-submit-btn').onclick = createRow; //отправлет POST запрос создания нового ЖП
-        document.getElementById('form-delete-btn').style.display = 'none';
-        document.getElementById('new-id').textContent = ''; //очищает значение ID при создании новой записи
+    document.getElementById('new-btn').addEventListener('click', async () => { // Обработчик для кнопки "Добавить лист журнала"
+        document.getElementById('new-form').reset(); // Сброс формы
+        document.getElementById('form-submit-btn').onclick = createZp; //на кнопку "Создать" вешаем функцию создания нового ЖП
+
+        openModal('new-form-container'); // Используем функцию из modalUtils.js для открытия модального окна
     });
 
-    //закрытие формы
-    document.getElementById('form-close-btn').addEventListener('click', () => {
-        closeModal('new-form-container');
-        document.getElementById('form-submit-btn').textContent = 'Создать';
-        document.getElementById('form-submit-btn').onclick = createRow;
-        document.getElementById('form-delete-btn').style.display = 'block';
-    });
-
-    loadData(); // Загрузка данных при загрузке страницы
-
-    addCloseEventListeners('new-form-container', '#form-close-btn', '.modal-backdrop');    // Навешиваем обработчики закрытия модального окна
+    addCloseEventListeners('new-form-container', '#form-close-btn', '.modal-backdrop');  // Навешиваем обработчики закрытия модального окна на кнопку "Отмена"
 });

@@ -5,10 +5,27 @@ import {
     addCloseEventListeners
 } from './shared/modalUtils.js';
 
+/** Парсит JWT токен из localStorage и возвращает массив прав пользователя.
+ * @returns {string[]} Массив прав (permissions) или пустой массив, если токен не найден или некорректен */
+function getUserPermissions() {
+    const jwtToken = localStorage.getItem('jwtToken');
+    if (!jwtToken) return [];
+    try {
+        const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+        console.log(payload);
+
+        return payload.permissions || [];
+    } catch (error) {
+        console.error('Ошибка при парсинге JWT токена:', error);
+        return [];
+    }
+}
+
 /** Функция для обновления UI в зависимости от статуса авторизации
  * @description функция будет отвечать исключительно за скрытие/отображение формы логина, информации о пользователе и кнопки "Добавить новое" на основе наличия JWT токена в localStorage */
 function updateAuthUI() {
     const jwtToken = localStorage.getItem('jwtToken');
+    const permissions = getUserPermissions(); // Получаем массив прав
     const loginFormContainer = document.getElementById('react-login-form-container');
     const userInfoContainer = document.getElementById('user-info-container');
     const loggedInUserInfo = document.getElementById('logged-in-user-info');
@@ -30,7 +47,10 @@ function updateAuthUI() {
             }
         }
 
-        if (newBtn) newBtn.style.display = 'block'; //отображаем кнопку Добавить новое
+        if (newBtn) {
+            // newBtn.style.display = 'block';
+            newBtn.style.display = permissions.includes('create_entries') ? 'block' : 'none'; // отображаем кнопку Добавить новое если есть права create_entries
+        }
     } else {    // Пользователь не авторизован
         if (loginFormContainer) loginFormContainer.style.display = 'block'; // оборажаем форму входа
         if (userInfoContainer) userInfoContainer.style.display = 'none'; // не отображать контейнер с инфо пользователя и кнопкой выхода
@@ -115,6 +135,7 @@ function addDocField(docName = '', docLink = '') {
  * @param {*} id идентификатор записи */
 async function openEditForm(id) {
     try {
+        const permissions = getUserPermissions(); // Получаем массив прав
         const data = await DataManager.fetchProductById(id);  // заполнение формы параметра изделия из БД
         const categories = await DataManager.fetchCategories(); // заполнение выпадающего списка категорий
 
@@ -147,11 +168,24 @@ async function openEditForm(id) {
             data.docs.forEach(doc => addDocField(doc.doc_name, doc.doc_link));
         }
 
-        // Настройка кнопок
-        document.getElementById('form-submit-btn').textContent = 'Обновить';
-        document.getElementById('form-submit-btn').onclick = () => updateRow(id);
-        document.getElementById('form-delete-btn').onclick = () => deleteRow(id);
-        document.getElementById('form-delete-btn').style.display = 'block'; // Показать кнопку удаления при редактировании
+        // Настройка кнопок в зависимости от прав
+        const submitBtn = document.getElementById('form-submit-btn'); //кнопка изменения записи "Обновить"
+        const deleteBtn = document.getElementById('form-delete-btn'); //кнопка удаления записи "Удалить"
+
+        if (permissions.includes('edit_entries_full')) { // есть права на редактирование
+            submitBtn.style.display = 'block';
+            submitBtn.textContent = 'Обновить';
+            submitBtn.onclick = () => updateRow(id);
+        } else { //нет прав на редактирование
+            submitBtn.style.display = 'none'; //скрываем кнопку
+        }
+
+        if (permissions.includes('edit_entries_full')) { // есть права на удаление
+            deleteBtn.style.display = 'block';
+            deleteBtn.onclick = () => deleteRow(id);
+        } else { //нет прав на удаление
+            deleteBtn.style.display = 'none'; //скрываем кнопку
+        }
 
         openModal('new-form-container');
 

@@ -96,8 +96,8 @@ export class ProductController {
     }
 
     static async createZp(req, res) {  //добавление нового ЖП
-        //create_journals
-        if (!req.user || !req.user.permissions.includes('create_journals')) { // Проверка наличия прав на создание журналов
+        //create_zp
+        if (!req.user || !req.user.permissions.includes('create_zp')) { // Проверка наличия прав на создание журналов
             return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для создания журналов.' });
         }
 
@@ -150,8 +150,8 @@ export class ProductController {
     }
 
     static async updateZp(req, res) {  //изменение ЖП по id
-        //edit_journals
-        if (!req.user || !req.user.permissions.includes('edit_journals')) {
+        //edit_zp
+        if (!req.user || !req.user.permissions.includes('edit_zp')) {
             return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для редактирования журналов.' });
         }
 
@@ -206,8 +206,8 @@ export class ProductController {
     }
 
     static async deleteZp(req, res) {  //удаление ЖП по id
-        //delete_journals
-        if (!req.user || !req.user.permissions.includes('delete_journals')) {  // Проверка наличия прав на удаление журналов
+        //delete_zp
+        if (!req.user || !req.user.permissions.includes('delete_zp')) {  // Проверка наличия прав на удаление журналов
             return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для удаления журналов.' });
         }
 

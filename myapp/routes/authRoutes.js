@@ -260,10 +260,10 @@ router.put('/api/users/:id', authenticateToken, validatePermissionsUpdate, async
 const ALL_PERMISSIONS = [
     'view_users',
     'edit_permissions',
-    'create_journals',
-    'edit_journals',
-    'delete_journals',
-    'create_entries',
+    'create_zp', // Создание ЖП
+    'edit_zp', // Редактировавние ЖП
+    'delete_zp', // Удаление ЖП
+    'create_entries',  // Создание записи
     'edit_entries_full', // Полное редактирование записи
     'edit_entries_initiator', // Редактирование части заполняемой инициатором
     'edit_entries_responder', // Редактирование части заполняемой отвечающим (включая утверждение)
