@@ -1,16 +1,53 @@
 import { DataManager } from './dataManager.js';
-import {
-    handleAuth,
-    handleLogout,
-    initAuthStatus,
-    addAuthEventListeners
-} from './shared/auth.js';
+// import {
+//     handleAuth,
+//     handleLogout,
+//     initAuthStatus,
+//     addAuthEventListeners
+// } from './shared/auth.js';
 import {
     openModal,
     closeModal,
     addCloseEventListeners
 } from './shared/modalUtils.js';
 //Для ЖП
+
+/** Новая функция для обновления UI в зависимости от статуса авторизации
+ * @description функция будет отвечать исключительно за скрытие/отображение формы логина, информации о пользователе и кнопки "Добавить новое" на основе наличия JWT токена в localStorage */
+function updateAuthUI() {
+    const jwtToken = localStorage.getItem('jwtToken');
+    const loginFormContainer = document.getElementById('react-login-form-container');
+    const userInfoContainer = document.getElementById('user-info-container');
+    const loggedInUserInfo = document.getElementById('logged-in-user-info');
+    const logoutBtn = document.getElementById('logout-btn');
+    const newBtn = document.getElementById('new-btn');
+
+    if (jwtToken) {    // Пользователь авторизован
+        if (loginFormContainer) loginFormContainer.style.display = 'none'; //скрываем форму входа
+
+        const username = localStorage.getItem('username'); // Берем из localStorage
+        const userEmail = localStorage.getItem('userEmail'); // Берем из localStorage
+
+        if (userInfoContainer && loggedInUserInfo && logoutBtn) { //показывать инфо о пользователе и кнопку выхода из профиля
+            loggedInUserInfo.textContent = `Вошел как: ${username} (${userEmail})`; //подстановка данных о пользователе из localstorage
+            userInfoContainer.style.display = 'block'; //отображать контейнер с инфо пользователя и кнопкой выхода
+            if (!logoutBtn.dataset.listenerAttached) { // проверяем что нет обработчика на кнопке выхода
+                logoutBtn.addEventListener('click', handleLogout);
+                logoutBtn.dataset.listenerAttached = 'true'; // Помечаем, что обработчик навешен
+            }
+        }
+
+        if (newBtn) newBtn.style.display = 'block'; //отображаем кнопку Добавить новое
+    } else {    // Пользователь не авторизован
+        if (loginFormContainer) loginFormContainer.style.display = 'block'; // оборажаем форму входа
+        if (userInfoContainer) userInfoContainer.style.display = 'none'; // не отображать контейнер с инфо пользователя и кнопкой выхода
+        if (newBtn) newBtn.style.display = 'none'; // не отображаем кнопку Добавить новое
+        if (logoutBtn && logoutBtn.dataset.listenerAttached) {  // Удаляем обработчик выхода, если он был навешен
+            logoutBtn.removeEventListener('click', handleLogout);
+            logoutBtn.dataset.listenerAttached = '';
+        }
+    }
+}
 
 async function loadData() { //GET запрос загружает данные из сервера и обновляет таблицу
     const countArr = await DataManager.fetchCountNotesInZp(); // GET запрос на получение количества записей в ЖП
@@ -207,9 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initAuthStatus();
     addAuthEventListeners(); // Добавляем обработчики событий из shared/auth.js
 
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const newBtn = document.getElementById('new-btn');
-    if (isAuthenticated) { newBtn.style.display = 'block'; }
+    // const isAuthenticated = localStorage.getItem('isAuthenticated');
+    // const newBtn = document.getElementById('new-btn');
+    // if (isAuthenticated) { newBtn.style.display = 'block'; }
 
 
     // Навешивание событий на элементы управления (конпку создания новой записи и закрытие формы новой записи)

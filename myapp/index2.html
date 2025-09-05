@@ -8,13 +8,14 @@
     <link rel="stylesheet" href="/css/layout.css">
     <link rel="stylesheet" href="/css/style2.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js" defer></script>
+    <script src="/frontend-react/dist/embed.js" type="module" defer></script>
     <script src="/frontend/main2.js" type="module" defer></script>
     <title>Журналы предложений (ЖП) компании Стальэнерго</title>
 </head>
 
 <body>
     <!-- форма авторизации -->
-    <div class="auth-container">
+    <!-- <div class="auth-container">
         <button id="auth-btn">Авторизация</button>
         <div id="auth-form-container">
             <form id="auth-form">
@@ -28,6 +29,15 @@
                 <button type="button" id="auth-close-btn">Отмена</button>
             </form>
         </div>
+    </div> -->
+
+    <!-- Форма авторизации React -->
+    <div id="react-login-form-container"></div>
+
+    <!-- Контейнер для информации о пользователе и кнопки "Выход" -->
+    <div id="user-info-container" style="display: none; text-align: right; padding: 10px;">
+        <p id="logged-in-user-info" style="margin: 0; padding-right: 10px; display: inline-block;"></p>
+        <button id="logout-btn">Выход</button>
     </div>
 
     <!-- контейнер кнопопок управления -->

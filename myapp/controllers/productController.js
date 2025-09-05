@@ -78,8 +78,13 @@ export class ProductController {
     }
 
     static async createProduct(req, res) {  //добавление новой записи
+        //create_entries
+        if (!req.user || !req.user.permissions.includes('create_entries')) { // Проверка наличия прав на создание записей
+            return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для создания записей.' });
+        }
+
         const productData = req.body;
-        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+        const username = req.user.username; //Извлечение имени пользователя из токена
         try {
             const result = await ProductModel.createProduct(productData);
             logger.logAction(username, 'CREATE', result.id, productData); // Логирование созданной записи
@@ -91,8 +96,13 @@ export class ProductController {
     }
 
     static async createZp(req, res) {  //добавление нового ЖП
+        //create_journals
+        if (!req.user || !req.user.permissions.includes('create_journals')) { // Проверка наличия прав на создание журналов
+            return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для создания журналов.' });
+        }
+
         const zpData = req.body;
-        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+        const username = req.user.username; //Извлечение имени пользователя из токена
         try {
             const result = await ProductModel.createZp(zpData);
             logger.logAction(username, 'CREATE', result.id, zpData); // Логирование созданной записи
@@ -104,8 +114,13 @@ export class ProductController {
     }
 
     static async createNoteZp(req, res) {  //добавление новой записи в ЖП
+        //create_entries
+        if (!req.user || !req.user.permissions.includes('create_entries')) { // Проверка наличия прав на создание записей
+            return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для создания записей.' });
+        }
+
         const noteData = req.body;
-        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+        const username = req.user.username; //Извлечение имени пользователя из токена
         try {
             const result = await ProductModel.createNoteZp(noteData); //возвращает { msg: 'Row inserted successfully', id: noteId } где id - id новой записи в ЖП
             logger.logAction(username, 'CREATE', result.id, noteData); // Логирование созданной записи
@@ -117,9 +132,13 @@ export class ProductController {
     }
 
     static async updateProduct(req, res) {  //изменение записи по id
+        //edit_entries_full
+        if (!req.user || !req.user.permissions.includes('edit_entries_full')) {  // Проверка наличия прав на редактирование записей
+            return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для редактирования записей.' });
+        }
         const { id } = req.params;
         const productData = req.body;
-        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+        const username = req.user.username; //Извлечение имени пользователя из токена
         try {
             const result = await ProductModel.updateProduct(id, productData);
             logger.logAction(username, 'UPDATE', id, productData);   // Логирование обновленной записи
@@ -129,10 +148,16 @@ export class ProductController {
             res.status(500).send('Internal Server Error');
         }
     }
+
     static async updateZp(req, res) {  //изменение ЖП по id
+        //edit_journals
+        if (!req.user || !req.user.permissions.includes('edit_journals')) {
+            return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для редактирования журналов.' });
+        }
+
         const { id } = req.params;
         const zpData = req.body;
-        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+        const username = req.user.username; //Извлечение имени пользователя из заголовка
         try {
             const result = await ProductModel.updateZp(id, zpData);
             logger.logAction(username, 'UPDATE', id, zpData);  // Логирование обновленной записи
@@ -144,9 +169,14 @@ export class ProductController {
     }
 
     static async updateNoteZp(req, res) {  //Обновление существующей записи в ЖП
+        //edit_entries_full
+        if (!req.user || !req.user.permissions.includes('edit_entries_full')) { // Проверка наличия прав на редактирование записей
+            return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для редактирования записей.' });
+        }
+
         const { noteId } = req.params; //id записи
         const noteData = req.body;
-        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+        const username = req.user.username; //Извлечение имени пользователя из заголовка
         try {
             const result = await ProductModel.updateNoteZp(noteId, noteData); //возвращает { msg: 'Row inserted successfully', id: noteId } где id - id обновленной записи в ЖП
             logger.logAction(username, 'UPDATE', noteId, noteData); // Логирование обновленной записи
@@ -158,8 +188,13 @@ export class ProductController {
     }
 
     static async deleteProduct(req, res) {  //удаление записи по id
+        //delete_entries
+        if (!req.user || !req.user.permissions.includes('delete_entries')) {  // Проверка наличия прав на удаление записей
+            return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для удаления записей.' });
+        }
+
         const { id } = req.params;
-        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+        const username = req.user.username; //Извлечение имени пользователя из заголовка
         try {
             const result = await ProductModel.deleteProduct(id);
             logger.logAction(username, 'DELETE', id, result.deletedRow); // Логирование удаленной записи
@@ -171,8 +206,13 @@ export class ProductController {
     }
 
     static async deleteZp(req, res) {  //удаление ЖП по id
+        //delete_journals
+        if (!req.user || !req.user.permissions.includes('delete_journals')) {  // Проверка наличия прав на удаление журналов
+            return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для удаления журналов.' });
+        }
+
         const { id } = req.params;
-        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+        const username = req.user.username; //Извлечение имени пользователя из заголовка
         try {
             const result = await ProductModel.deleteZp(id);
             logger.logAction(username, 'DELETE', id, result.deletedRow); // Логирование удаленной записи
@@ -184,8 +224,13 @@ export class ProductController {
     }
 
     static async deleteNoteZp(req, res) {  //удаление записи в ЖП по id
+        //delete_entries
+        if (!req.user || !req.user.permissions.includes('delete_entries')) { // Проверка наличия прав на удаление записей
+            return res.status(403).json({ message: 'Доступ запрещен: недостаточно прав для удаления записей.' });
+        }
+
         const { noteId } = req.params;
-        const username = req.headers['x-username']; //Извлечение имени пользователя из заголовка
+        const username = req.user.username; //Извлечение имени пользователя из заголовка
         try {
             const result = await ProductModel.deleteNoteZp(noteId);
             logger.logAction(username, 'DELETE', noteId, result.deletedRow); // Логирование удаленной записи

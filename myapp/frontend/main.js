@@ -1,18 +1,11 @@
 import { DataManager } from './dataManager.js';
-import { serverUrl } from './config.js';
-import {
-    handleAuth,
-    //     // initAuthStatus,
-    //     // addAuthEventListeners
-} from './shared/auth.js';
 import {
     openModal,
     closeModal,
     addCloseEventListeners
 } from './shared/modalUtils.js';
-// import { renderLoginForm } from '../frontend-react/dist/embed.js'; //глобально использоуется на объекте windiw
 
-/** Новая функция для обновления UI в зависимости от статуса авторизации
+/** Функция для обновления UI в зависимости от статуса авторизации
  * @description функция будет отвечать исключительно за скрытие/отображение формы логина, информации о пользователе и кнопки "Добавить новое" на основе наличия JWT токена в localStorage */
 function updateAuthUI() {
     const jwtToken = localStorage.getItem('jwtToken');
@@ -20,7 +13,7 @@ function updateAuthUI() {
     const userInfoContainer = document.getElementById('user-info-container');
     const loggedInUserInfo = document.getElementById('logged-in-user-info');
     const logoutBtn = document.getElementById('logout-btn');
-    const newButton = document.getElementById('new-btn');
+    const newBtn = document.getElementById('new-btn');
 
     if (jwtToken) {    // Пользователь авторизован
         if (loginFormContainer) loginFormContainer.style.display = 'none'; //скрываем форму входа
@@ -28,7 +21,7 @@ function updateAuthUI() {
         const username = localStorage.getItem('username'); // Берем из localStorage
         const userEmail = localStorage.getItem('userEmail'); // Берем из localStorage
 
-        if (userInfoContainer && loggedInUserInfo && logoutBtn) { //показывать инфо о пользователе и кнопку выхода из профиля
+        if (userInfoContainer && loggedInUserInfo && logoutBtn) { //если на старнице html есть нужные элементы, то показывать инфо о пользователе и кнопку выхода из профиля
             loggedInUserInfo.textContent = `Вошел как: ${username} (${userEmail})`; //подстановка данных о пользователе из localstorage
             userInfoContainer.style.display = 'block'; //отображать контейнер с инфо пользователя и кнопкой выхода
             if (!logoutBtn.dataset.listenerAttached) { // проверяем что нет обработчика на кнопке выхода
@@ -37,15 +30,16 @@ function updateAuthUI() {
             }
         }
 
-        if (newButton) newButton.style.display = 'block'; //отображаем кнопку Добавить новое
+        if (newBtn) newBtn.style.display = 'block'; //отображаем кнопку Добавить новое
     } else {    // Пользователь не авторизован
         if (loginFormContainer) loginFormContainer.style.display = 'block'; // оборажаем форму входа
         if (userInfoContainer) userInfoContainer.style.display = 'none'; // не отображать контейнер с инфо пользователя и кнопкой выхода
-        if (newButton) newButton.style.display = 'none'; // не отображаем кнопку Добавить новое
+        if (newBtn) newBtn.style.display = 'none'; // не отображаем кнопку Добавить новое
         if (logoutBtn && logoutBtn.dataset.listenerAttached) {  // Удаляем обработчик выхода, если он был навешен
             logoutBtn.removeEventListener('click', handleLogout);
             logoutBtn.dataset.listenerAttached = '';
         }
+        document.getElementById('table-body').innerHTML = ''; // Очищаем таблицу, если пользователь не авторизован
     }
 }
 
@@ -56,9 +50,7 @@ function handleLoginSuccess(userData) {
         localStorage.setItem('username', userData.username);
         localStorage.setItem('userEmail', userData.email);
     } else {
-        console.warn('LoginForm.jsx не передал данные пользователя (username и/или email в объекте userData) в handleLoginSuccess');
-        localStorage.setItem('username', 'Неизвестный пользователь');
-        localStorage.setItem('userEmail', 'Неизвестный email');
+        console.warn('LoginForm.jsx не передал данные пользователя (username и/или email в объекте userData) в handleLoginSuccess'); //debag
     }
     updateAuthUI(); // Обновляем UI
     loadData();     // Загружаем данные (если нужно обновить после входа)
@@ -71,137 +63,21 @@ function handleLogout() {
     localStorage.removeItem('username');
     localStorage.removeItem('userEmail');
     updateAuthUI(); // Обновляем UI
-    loadData();     // Загружаем данные (если нужно обновить после входа)
 }
 
-// Проверка состояния авторизации при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    updateAuthUI(); // Обновляем UI
-    window.renderLoginForm('react-login-form-container', handleLoginSuccess); // Вызов функции для рендеринга формы входа React. Вызываем импортированную глобально функцию из embed.js
-    loadData(); // Всегда загружаем данные при загрузке страницы
-
-    document.getElementById('toggle-doc-btn').addEventListener('click', () => {  // Обработчик для кнопки "ОКПД, ОКВЭД / Документация"
-        const toggleBtn = document.getElementById('toggle-doc-btn');
-        const okpdOkvedCols = document.querySelectorAll('.okpd-okved-col');
-        const docCols = document.querySelectorAll('.doc-col');
-        if (toggleBtn.textContent === 'Документация') {
-            toggleBtn.textContent = 'ОКПД, ОКВЭД';
-            okpdOkvedCols.forEach(col => col.style.display = 'none');
-            docCols.forEach(col => col.style.display = '');
-            localStorage.setItem('docToggleState', 'docs'); // Сохраняем состояние
-        } else {
-            toggleBtn.textContent = 'Документация';
-            okpdOkvedCols.forEach(col => col.style.display = '');
-            docCols.forEach(col => col.style.display = 'none');
-            localStorage.setItem('docToggleState', 'codes'); // Сохраняем состояние
-        }
-    });
-
-    document.getElementById('new-btn').addEventListener('click', async () => {   // Обработчик для кнопки "Добавить новое"
-        const jwtToken = localStorage.getItem('jwtToken');
-        if (!jwtToken) {
-            alert('Для добавления записей необходимо авторизоваться.');
-            return;
-        }
-        const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
-        const select = document.getElementById('new-category_id');
-        select.innerHTML = '';
-        categories.forEach(category => {
-            const option = document.createElement('option');  //внутри выпадающего списка select создаем элементы списка option
-            option.value = category.category_id;
-            option.textContent = `${category.category_id.join('.')} ${category.category_name}`;
-            select.append(option);  // в HTML элемент select вставляем весь список категорий option
-        });
-        openModal('new-form-container'); // Используем функцию из modalUtils.js для открытия модального окна
-        document.getElementById('form-submit-btn').textContent = 'Создать';
-        document.getElementById('form-submit-btn').onclick = createRow;
-        document.getElementById('form-delete-btn').style.display = 'none'; // Скрыть кнопку удаления при создании
-        document.getElementById('new-id').textContent = ''; //очищает значение ID при создании новой записи
-        document.getElementById('doc-container').innerHTML = ''; //*** возможно ненужно, чтоб можно было копировать записи
-    });
-
-    addCloseEventListeners('new-form-container', '#form-close-btn', '.modal-backdrop'); // Добавление обработчика клика по фону модального окна и кнопке закрытия
-});
-
-/** Асинхронная функция делает GET запрос к БД, загружает данные с сервера и обновляет таблицу */
-async function loadData() {
-    const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
-    const products = await DataManager.fetchProducts();  // Загрузка изделий
-    const tableBody = document.getElementById('table-body');
-    tableBody.innerHTML = ''; // Очистка таблицы перед загрузкой данных
-
-    const jwtToken = localStorage.getItem('jwtToken'); // Получаем токен один раз перед циклом для эффективности
-
-    categories.forEach(category => {  //проходимся по всем категориям
-        const categoryCode = category.category_id.join('.');
-        const categoryRow = document.createElement('tr');
-        categoryRow.innerHTML = `
-            <td colspan="6" class="category_item">${categoryCode} ${category.category_name}</td>
-        `;
-        tableBody.append(categoryRow);
-
-        const categoryItems = products.filter(item => JSON.stringify(item.category_code) === JSON.stringify(category.category_id));  //сравниваем изделия и категории по колонке массива чисел
-
-        categoryItems.forEach(item => { //заполнение строк таблицы изделий
-            const tr = document.createElement('tr');
-            tr.setAttribute('data-id', item.id);
-            tr.innerHTML = `
-                <td>${item.item_number.join('.')}</td>
-                <td>${item.prod_name}</td>
-                <td>${item.prod_mark}</td>
-                <td>${item.prod_number}</td>
-                <td class="okpd-okved-col">${item.prod_okpd}</td>
-                <td class="okpd-okved-col">${item.prod_okved}</td>
-                <td class="doc-col ${item.prod_dir === '' ? 'fail-dir' : ''}" style="display: none;">${item.docs ? formatDocs(item.docs) : ''}</td >
-            `;
-
-            if (jwtToken) {   // Навешиваем обработчики для редактирования и контекстного меню только если пользователь авторизован
-                tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши для редактирования позиции
-                tr.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши для кастомного контекстного меню
-                    if (!event.target.closest('a')) { // на ссылках оставляем дефолное выпадающее меню
-                        event.preventDefault(); //на остальном контенте...
-                        showContextMenu(event, item); //...открываем кастомное выпадающее меню, event - для позиционирования меню рядом с кликом, item - объект с данными о кликнутом изделии
-                    }
-                });
-            }
-
-            tableBody.append(tr);
-        });
-    });
-
-    // Восстановление состояния кнопки из LocalStorage
+/** Восстановление состояния кнопки из LocalStorage */
+function restoreToggleState() {
     const toggleBtn = document.getElementById('toggle-doc-btn');
     const savedState = localStorage.getItem('docToggleState');
-    if (savedState === 'docs') {
-        toggleBtn.textContent = 'ОКПД, ОКВЭД';
-        document.querySelectorAll('.okpd-okved-col').forEach(col => col.style.display = 'none');
-        document.querySelectorAll('.doc-col').forEach(col => col.style.display = '');
-    } else { //если savedState === 'codes'
-        toggleBtn.textContent = 'Документация';
-        document.querySelectorAll('.okpd-okved-col').forEach(col => col.style.display = '');
-        document.querySelectorAll('.doc-col').forEach(col => col.style.display = 'none');
+    if (savedState === 'docs') { //отображаем документацию
+        toggleBtn.textContent = 'ОКПД, ОКВЭД'; //установка текста кнопки
+        document.querySelectorAll('.okpd-okved-col').forEach(col => col.style.display = 'none'); //скрываем ОКПД, ОКВЭД
+        document.querySelectorAll('.doc-col').forEach(col => col.style.display = ''); //отображаем документацию
+    } else { //если savedState === 'codes', отображаем ОКПД, ОКВЭД
+        toggleBtn.textContent = 'Документация'; //установка текста кнопки
+        document.querySelectorAll('.okpd-okved-col').forEach(col => col.style.display = ''); //отображаем ОКПД, ОКВЭД
+        document.querySelectorAll('.doc-col').forEach(col => col.style.display = 'none'); //скрываем документацию
     }
-
-    document.querySelectorAll('.link-to-doc').forEach(link => { // обработчик событий для ссылок документации
-        if (link.getAttribute('data-link').startsWith('\\')) { //если это ссылка на локальный ресурс \\fs3...
-            //пример файла из БД "\\fs3\Производственный архив центрального офиса\ЕИУС.468622.001_ППСЦ\ЭД\ЕИУС.468351.101 ТУ.pdf"
-            //пример файла на сервере "/data/folder1/ЕИУС.468622.001_ППСЦ/ЭД/ЕИУС.468351.101 ТУ.pdf"
-            link.addEventListener('click', (event) => {
-                event.preventDefault(); //не будем пытаться открыть этот ресурс в новой вкладке
-                const filePath = link.getAttribute('data-link'); // ссылка на документ с локальной машины вида \\fs3\...
-                fetch(`http://${serverUrl}/api/get-file`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: filePath })
-                }).then(response => {
-                    if (response.ok) { return response.json(); } //ответ преобразовываем в JSON
-                    throw new Error('Network response was not ok.');
-                }).then(data => {
-                    window.open(data.url, '_blank'); //получаем ссылку на локльный ресурс, открываем файл в новой вкладке
-                }).catch(error => console.error('Error fetching the PDF:', error));
-            });
-        }
-    });
 }
 
 /** Функция создает ссылку и раскрашивает документы, есть ссылка - зеленый, нет ссылки - красный
@@ -209,61 +85,12 @@ async function loadData() {
  * @returns возвращает HTML код раскрашенных ссылок на прикрепленные документы */
 function formatDocs(docs) {
     return docs.map(doc => {
-        const encodedLink = doc.doc_link // ссылка формата как она хранится  в БД \\fs3\Производственный архив центрального офиса\ЕИУС.468622.001_ППСЦ\ЭД\ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf
-        const link = encodedLink ? `<a href="${encodedLink}" data-link="${encodedLink}" class="link-to-doc" style="color: green;" target="_blank">${doc.doc_name}</a>` : `<span style="color: red;">${doc.doc_name}</span>`; //ссылка существует - зеленый цвет выбираем, отсутвует - красный
+        // const encodedLink = doc.doc_link // ссылка формата как она хранится  в БД \\fs3\Производственный архив центрального офиса\ЕИУС.468622.001_ППСЦ\ЭД\ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf
+        const link = doc.doc_link
+            ? `<a href="${doc.doc_link}" data-link="${doc.doc_link}" class="link-to-doc" style="color: green;" target="_blank">${doc.doc_name}</a>`
+            : `<span style="color: red;">${doc.doc_name}</span>`; //ссылка существует - зеленый цвет выбираем, отсутвует - красный
         return link; //возвращает в новый массив(map) готовых HTML ссылок
     }).join(' '); //массив готовых HTML ссылок преобразовывает в строку где ссылки разделены пробелом
-}
-
-/** Асинхронная функция делает GET запрос к БД, загружает данные конкретной записи по id в форму для редактирования
- * @param {*} id идентификатор записи */
-async function openEditForm(id) { // 
-    const jwtToken = localStorage.getItem('jwtToken');  // Проверка авторизации перед открытием формы редактирования
-    if (!jwtToken) {
-        alert('Для редактирования записей необходимо авторизоваться.');
-        return;
-    }
-
-    const data = await DataManager.fetchProductById(id);
-
-    document.getElementById('new-id').textContent = data.id;
-    document.getElementById('new-item_number').value = data.item_number.slice(-1)[0];
-    document.getElementById('new-prod_name').value = data.prod_name;
-    document.getElementById('new-prod_mark').value = data.prod_mark;
-    document.getElementById('new-prod_number').value = data.prod_number;
-    document.getElementById('new-prod_okpd').value = data.prod_okpd;
-    document.getElementById('new-prod_okved').value = data.prod_okved;
-    document.getElementById('new-prod_dir').value = data.prod_dir || '';
-
-    document.getElementById('form-submit-btn').textContent = 'Обновить';
-    document.getElementById('form-submit-btn').onclick = () => updateRow(id);
-    document.getElementById('form-delete-btn').onclick = () => deleteRow(id);
-    document.getElementById('form-delete-btn').style.display = 'block'; // Показать кнопку удаления при редактировании
-
-    // Заполнение выпадающего списка категорий
-    const categories = await DataManager.fetchCategories();
-    const select = document.getElementById('new-category_id'); //поле <select> формы "Категория:"
-    select.innerHTML = '';
-    categories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category.category_id;  //значение опции = массив [1,1] конктреной категории из табл. категорий
-        option.textContent = `${category.category_id.join('.')} ${category.category_name}`;  //текст внутри опции = "1.1 Название этой категории"
-        if (JSON.stringify(category.category_id) === JSON.stringify(data.category_id)) {  //если значение категории в категории и у изделия одинаковы [1,1] === [1,1]
-            option.selected = true;  //делаем эту опцию(категорию) выбранной при открытии формы
-        }
-        select.append(option);
-    });
-
-    // Заполнение полей документации
-    const docContainer = document.getElementById('doc-container'); //контейнер для полей документации в форме
-    docContainer.innerHTML = '';
-    data.docs.forEach(doc => {
-        addDocField(doc.doc_name, doc.doc_link);
-    });
-
-    openModal('new-form-container');
-    document.getElementById('new-form-container').style.display = 'block'; //это повторяется в openModal возможно можно удалить эту строку
-    document.querySelector('.modal-backdrop').style.display = 'block';
 }
 
 /** добавление нового поля для документа. ***можно поле docName заполнять по умолчанию например NONE
@@ -274,92 +101,139 @@ function addDocField(docName = '', docLink = '') {
     const docDiv = document.createElement('div');
     docDiv.classList.add('doc-field');
     docDiv.innerHTML = `
-        <input type="text" class="doc-name" value="${docName}" required>
-        <input type="text" class="doc-link" value="${docLink}">
+        <input type="text" class="doc-name" value="${docName}" placeholder="Название документа" required>
+        <input type="text" class="doc-link" value="${docLink}" placeholder="Ссылка на документ">
         <button type="button" class="remove-doc-btn">Удалить</button>
     `;
     docContainer.append(docDiv);
-    const removeBtn = docDiv.querySelector('.remove-doc-btn');
-    removeBtn.addEventListener('click', () => { //на кнопку "Удалить" документ - вешаем событие удаление строчки документа
+    docDiv.querySelector('.remove-doc-btn').addEventListener('click', () => { //на кнопку "Удалить" документ - вешаем событие удаление строчки документа
         docContainer.removeChild(docDiv); //removeChild верно работает, remove некорректно работает
     });
 }
 
-document.getElementById('add-doc-btn').addEventListener('click', () => { //когда нажимем по кнопке "Добавить документ"
-    addDocField();
-});
-
-/** Асинхронная функция отправляет PUT запрос на сервер с обновленными данными записи
+/** Асинхронная функция делает GET запрос к БД, загружает данные конкретной записи по id в форму для редактирования
  * @param {*} id идентификатор записи */
-async function updateRow(id) {
-    const jwtToken = localStorage.getItem('jwtToken');
-    if (!jwtToken) {
-        alert('Для обновления записей необходимо авторизоваться.');
-        return;
+async function openEditForm(id) {
+    try {
+        const data = await DataManager.fetchProductById(id);  // заполнение формы параметра изделия из БД
+        const categories = await DataManager.fetchCategories(); // заполнение выпадающего списка категорий
+
+        document.getElementById('new-id').textContent = data.id;
+        document.getElementById('new-item_number').value = data.item_number.slice(-1)[0];
+        document.getElementById('new-prod_name').value = data.prod_name;
+        document.getElementById('new-prod_mark').value = data.prod_mark;
+        document.getElementById('new-prod_number').value = data.prod_number;
+        document.getElementById('new-prod_okpd').value = data.prod_okpd;
+        document.getElementById('new-prod_okved').value = data.prod_okved;
+        document.getElementById('new-prod_dir').value = data.prod_dir || '';
+
+        // Заполнение выпадающего списка категорий
+        const select = document.getElementById('new-category_id'); //поле <select> формы "Категория:"
+        select.innerHTML = '';
+        categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.category_id;  //значение опции = массив [1,1] конктреной категории из табл. категорий
+            option.textContent = `${category.category_id.join('.')} ${category.category_name}`;  //текст внутри опции = "1.1 Название этой категории"
+            if (JSON.stringify(category.category_id) === JSON.stringify(data.category_id)) {  //если значение категории в категории и у изделия одинаковы [1,1] === [1,1]
+                option.selected = true;  //делаем эту опцию(категорию) выбранной при открытии формы
+            }
+            select.append(option);
+        });
+
+        // Заполнение полей документации
+        const docContainer = document.getElementById('doc-container'); //контейнер для полей документации в форме
+        docContainer.innerHTML = '';
+        if (data.docs) {
+            data.docs.forEach(doc => addDocField(doc.doc_name, doc.doc_link));
+        }
+
+        // Настройка кнопок
+        document.getElementById('form-submit-btn').textContent = 'Обновить';
+        document.getElementById('form-submit-btn').onclick = () => updateRow(id);
+        document.getElementById('form-delete-btn').onclick = () => deleteRow(id);
+        document.getElementById('form-delete-btn').style.display = 'block'; // Показать кнопку удаления при редактировании
+
+        openModal('new-form-container');
+
+    } catch (error) {
+        console.error('Ошибка при открытии формы редактирования:', error);
+        alert(error.message || 'Не удалось получить данные для редактирования.');
     }
-
-    const category_id = document.getElementById('new-category_id').value.split(',').map(Number);   //"1,1" -> [1, 2]. Выбираем HTML элемент <select>(выпадающ. список катег.), value - берем  значение "1,1" выбранного option, split - разделяем строку на массив подстрок ("1,2,3" -> ["1", "2", "3"]) используя разделитель ",", map - каждое значение массива строк ["1", "2", "3"] преобразуется в массив чисел [1, 2, 3]
-    const item_number = document.getElementById('new-item_number').value; //порядковый номер изделия из формы
-    const docFields = document.querySelectorAll('.doc-field'); //выбрать все строки с документами в форме изделия
-    const docs = Array.from(docFields).map(field => {
-        const docName = field.querySelector('.doc-name').value;
-        const docLink = field.querySelector('.doc-link').value;
-        return [docName, docLink];
-    });
-    const data = {
-        category_id,
-        item_number: [...category_id, Number(item_number)],
-        prod_name: document.getElementById('new-prod_name').value,
-        prod_mark: document.getElementById('new-prod_mark').value,
-        prod_number: document.getElementById('new-prod_number').value,
-        prod_okpd: document.getElementById('new-prod_okpd').value,
-        prod_okved: document.getElementById('new-prod_okved').value,
-        docs,
-        prod_dir: document.getElementById('new-prod_dir').value
-    };
-
-    const username = localStorage.getItem('username') || 'anonymous';  // Извлечение имени пользователя
-
-    await DataManager.updateProduct(id, data, username); // Отправляем PUT запрос на сервер для обновления записи
-    closeModal('new-form-container'); // Закрываем модальное окно
-    document.getElementById('new-form').reset(); // Сброс формы
-    loadData();  // обновление списка записей
 }
 
-/** Асинхронная функция, удаляет запись из БД
- * @param {*} id идентификатор записи */
-async function deleteRow(id) {
-    const jwtToken = localStorage.getItem('jwtToken');
-    if (!jwtToken) {
-        alert('Для удаления записей необходимо авторизоваться.');
-        return;
+/** Асинхронная функция делает GET запрос к БД, загружает данные с сервера и обновляет таблицу */
+async function loadData() {
+    if (!localStorage.getItem('jwtToken')) return; // Если пользователь не авторизован, то ничего не делаем
+
+    try {
+        const [categories, products] = await Promise.all([  //ускоренная асинхронная обработка
+            DataManager.fetchCategories(),  // Загрузка всех категорий
+            DataManager.fetchProducts()  // Загрузка изделий
+        ]);
+
+        const tableBody = document.getElementById('table-body');
+        tableBody.innerHTML = ''; // Очистка таблицы перед загрузкой данных
+
+        const jwtToken = localStorage.getItem('jwtToken'); // Получаем токен один раз перед циклом для эффективности
+
+        categories.forEach(category => {  //проходимся по всем категориям
+            const categoryCode = category.category_id.join('.');
+            const categoryRow = document.createElement('tr');
+            categoryRow.innerHTML = `
+            <td colspan="6" class="category_item">${categoryCode} ${category.category_name}</td>
+        `;
+            tableBody.append(categoryRow);
+
+            const categoryItems = products.filter(item => JSON.stringify(item.category_code) === JSON.stringify(category.category_id));  //сравниваем изделия и категории по колонке массива чисел
+
+            categoryItems.forEach(item => { //заполнение строк таблицы изделий
+                const tr = document.createElement('tr');
+                // tr.setAttribute('data-id', item.id);
+                tr.dataset.id = item.id; //соверменный вариант добавления data аттрибута
+                tr.innerHTML = `
+                <td>${item.item_number.join('.')}</td>
+                <td>${item.prod_name}</td>
+                <td>${item.prod_mark}</td>
+                <td>${item.prod_number}</td>
+                <td class="okpd-okved-col">${item.prod_okpd}</td>
+                <td class="okpd-okved-col">${item.prod_okved}</td>
+                <td class="doc-col ${item.prod_dir === '' ? 'fail-dir' : ''}" style="display: none;">${item.docs ? formatDocs(item.docs) : ''}</td >
+            `;
+
+                if (jwtToken) {   // Навешиваем обработчики для редактирования и контекстного меню только если пользователь авторизован
+                    tr.addEventListener('dblclick', () => openEditForm(item.id)); // двойной клик левой кнопкой мыши для редактирования позиции
+                    tr.addEventListener('contextmenu', (event) => { //клик правой кнопкой мыши для кастомного контекстного меню
+                        if (!event.target.closest('a')) { // на ссылках оставляем дефолное выпадающее меню
+                            event.preventDefault(); //на остальном контенте...
+                            showContextMenu(event, item); //...открываем кастомное выпадающее меню, event - для позиционирования меню рядом с кликом, item - объект с данными о кликнутом изделии
+                        }
+                    });
+                }
+                tableBody.append(tr);
+            });
+        });
+
+        restoreToggleState();
+        addLinkHandlers();
+    } catch (error) {
+        console.error('Ошибка при загрузке данных:', error);
+        alert(error.message || 'Не удалось загрузить данные. Проверьте консоль для получения дополнительной информации.');
     }
-
-    const username = localStorage.getItem('username') || 'anonymous';  // Извлечение имени пользователя
-
-    await DataManager.deleteProduct(id, username); // Отправляем DELETE запрос на сервер для удаления записи
-    closeModal('new-form-container'); // Закрываем модальное окно
-    document.getElementById('new-form').reset(); // Сброс формы
-    loadData();
 }
 
-/** Асинхронная экспортируемая функция, отправляет POST запрос на сервер для создания новой записи */
-export async function createRow() {
-    const jwtToken = localStorage.getItem('jwtToken');
-    if (!jwtToken) {
-        alert('Для создания записей необходимо авторизоваться.');
-        return;
-    }
-
+/** Функция возвращает данные из формы
+ * @return {Object} объект с данными из формы */
+function getFormData() {
     const category_id = document.getElementById('new-category_id').value.split(',').map(Number);  //"1,1" -> [1, 2]. Выбираем HTML элемент <select>(выпадающ. список катег.), value - берем значение "1,1" выбранного option, split - разделяем строку на массив подстрок ("1,2,3" -> ["1", "2", "3"]) используя разделитель ",", map - каждое значение массива строк ["1", "2", "3"] преобразуется в массив чисел [1, 2, 3]
     const item_number = document.getElementById('new-item_number').value; //порядковый номер изделия из формы
     const docFields = document.querySelectorAll('.doc-field');
     const docs = Array.from(docFields).map(field => {
         const docName = field.querySelector('.doc-name').value;
         const docLink = field.querySelector('.doc-link').value;
-        return [docName, docLink];
+        return [docName, docLink]; // Отправляем как массив строк
     });
-    const data = {
+
+    return {
         category_id,
         item_number: [...category_id, Number(item_number)],
         prod_name: document.getElementById('new-prod_name').value,
@@ -370,13 +244,134 @@ export async function createRow() {
         docs,
         prod_dir: document.getElementById('new-prod_dir').value
     };
+}
 
-    const username = localStorage.getItem('username') || 'anonymous';  // Извлечение имени пользователя
+/** Асинхронная функция, отправляет POST запрос на сервер для создания новой записи */
+async function createRow() {
+    const data = getFormData(); // Данные из формы
+    if (!data) return;
 
-    await DataManager.createProduct(data, username); // POST запрос на создание изделия
-    closeModal('new-form-container'); // Закрываем модальное окно
-    document.getElementById('new-form').reset(); // Сброс формы
-    loadData();
+    try {
+        await DataManager.createProduct(data); // POST запрос на создание изделия
+        closeModal('new-form-container'); // Закрываем модальное окно
+        document.getElementById('new-form').reset(); // Сброс формы
+        loadData();
+    } catch (error) {
+        console.error('Ошибка при создании записи:', error);
+        alert(error.message || 'Не удалось создать запись.');
+    }
+}
+
+/** Асинхронная функция отправляет PUT запрос на сервер с обновленными данными записи
+ * @param {*} id идентификатор записи */
+async function updateRow(id) {
+    const data = getFormData(); // Данные из формы
+    if (!data) return;
+
+    try {
+        await DataManager.updateProduct(id, data); // Отправляем PUT запрос на сервер для обновления записи
+        closeModal('new-form-container'); // Закрываем модальное окно
+        document.getElementById('new-form').reset(); // Сброс формы
+        loadData();  // обновление списка записей
+    } catch (error) {
+        console.error('Ошибка при обновлении записи:', error);
+        alert(error.message || 'Не удалось обновить запись.');
+    }
+}
+
+/** Асинхронная функция, удаляет запись из БД
+ * @param {*} id идентификатор записи */
+async function deleteRow(id) {
+    if (!confirm('Вы уверены, что хотите удалить эту запись?')) return;
+
+    try {
+        await DataManager.deleteProduct(id); // Отправляем DELETE запрос на сервер для удаления записи
+        closeModal('new-form-container'); // Закрываем модальное окно
+        loadData();
+    } catch (error) {
+        console.error('Ошибка при удалении записи:', error);
+        alert(error.message || 'Не удалось удалить запись.');
+    }
+}
+
+// Проверка состояния авторизации при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    updateAuthUI(); // Обновляем UI
+
+    if (window.renderLoginForm) { // Проверяем, импортирована ли функция renderLoginForm через глобальный объект window
+        window.renderLoginForm('react-login-form-container', handleLoginSuccess); // Вызов функции для рендеринга формы входа React. Вызываем импортированную глобально функцию из embed.js
+    } else {
+        console.error('Функция renderLoginForm не найдена. Убедитесь, что embed.js загружен.');
+    }
+
+    if (localStorage.getItem('jwtToken')) { // Пользователь авторизован
+        loadData(); // загружаем данные при загрузке страницы
+    }
+
+    document.getElementById('toggle-doc-btn').addEventListener('click', () => {  // Обработчик для кнопки "ОКПД, ОКВЭД / Документация"
+        const toggleBtn = document.getElementById('toggle-doc-btn'); //берем кнопку переключения
+        const isDocsVisible = toggleBtn.textContent === 'ОКПД, ОКВЭД';
+        localStorage.setItem('docToggleState', isDocsVisible ? 'codes' : 'docs');
+        restoreToggleState(); // Восстанавливаем состояние кнопки
+    });
+
+    document.getElementById('new-btn').addEventListener('click', async () => { // Обработчик для кнопки "Добавить новое"
+        document.getElementById('new-form').reset(); //сбрасываем все input в форме
+        document.getElementById('doc-container').innerHTML = ''; //сбрасываем список документации
+        document.getElementById('new-id').textContent = ''; //очищает значение ID при создании новой записи
+        document.getElementById('form-submit-btn').textContent = 'Создать';
+        document.getElementById('form-submit-btn').onclick = createRow;
+        document.getElementById('form-delete-btn').style.display = 'none'; // Скрыть кнопку удаления при создании
+
+        try {
+            const categories = await DataManager.fetchCategories();  // Загрузка всех категорий
+            const select = document.getElementById('new-category_id');
+            select.innerHTML = '';
+            categories.forEach(category => {
+                const option = document.createElement('option'); //внутри выпадающего списка select создаем элементы списка option
+                option.value = category.category_id;
+                option.textContent = `${category.category_id.join('.')} ${category.category_name}`;
+                select.append(option);  // в HTML элемент select вставляем весь список категорий option
+            });
+            openModal('new-form-container'); // Используем функцию из modalUtils.js для открытия модального окна
+        } catch (error) {
+            console.error('Ошибка при загрузке категорий для формы:', error);
+            alert(error.message || 'Не удалось загрузить категории.');
+        }
+    });
+
+    document.getElementById('add-doc-btn').addEventListener('click', () => { //когда нажимем по кнопке "Добавить документ"
+        addDocField();
+    });
+    addCloseEventListeners('new-form-container', '#form-close-btn', '.modal-backdrop'); // Добавление обработчика клика по фону модального окна и кнопке закрытия
+});
+
+
+/** Функция навешивания ссылок документации */
+function addLinkHandlers() {
+    document.querySelectorAll('.link-to-doc').forEach(link => { // обработчик событий для ссылок документации
+        const filePath = link.getAttribute('data-link'); // ссылка на документ вида \\fs3\...
+        if (filePath && filePath.startsWith('\\')) { //если ссылка существует и это ссылка на локальный ресурс \\fs3...
+            //пример файла из БД "\\fs3\Производственный архив центрального офиса\ЕИУС.468622.001_ППСЦ\ЭД\ЕИУС.468351.101 ТУ.pdf"
+            //пример файла на сервере "/data/folder1/ЕИУС.468622.001_ППСЦ/ЭД/ЕИУС.468351.101 ТУ.pdf"
+
+            // Удаляем старый обработчик, чтобы избежать дублирования
+            const newLink = link.cloneNode(true);
+            link.parentNode.replaceChild(newLink, link);
+
+            newLink.addEventListener('click', async (event) => {
+                event.preventDefault(); //не будем пытаться открыть этот ресурс в новой вкладке
+                try {
+                    const data = await DataManager.fetchFileUrl(filePath); //получаем ссылку для доступа к файлу
+                    window.open(data.url, '_blank'); //получаем ссылку на локльный ресурс, открываем файл в новой вкладке
+                } catch (error) {
+                    // }).catch(error => console.error('Error fetching the PDF:', error));
+                    console.error('Error fetching the PDF URL:', error);
+                    alert('Не удалось открыть файл: ' + error.message);
+                }
+            });
+        }
+    });
 }
 
 /** Функция для отображения контекстного меню
@@ -426,95 +421,62 @@ function showContextMenu(event, item) {
 }
 
 /** Асинхронная функция для архивирования документов
- * @param {*} item данные об изделии из БД
- * @returns */
+ * @param {*} item данные об изделии из БД */
 async function archiveDocs(item) {
     const docs = item.docs; //массив объектов на каждый из документов(doc_name + doc_link)
+    if (!docs || docs.length === 0) { //проверка на существования документов
+        alert('Для этого элемента нет документов.');
+        return;
+    }
+
     console.log('Начало архивации, документы: ', docs);
     const zip = new JSZip(); // Создаем экземпляр ZIP-архива
 
-    // Функция для получения расширения из URL
-    const getFileExtension = (url) => {
-        try {
-            const cleanUrl = url.split('?')[0];  // Удаляем параметры запроса (всё после ?)
-            const filename = cleanUrl.split('/').pop(); // Получаем имя файла из URL
-            const ext = filename.includes('.') ? filename.split('.').pop().toLowerCase() : null; // Извлекаем расширение
-
-            console.log('Расширение файла по ссылке: ', ext);
-            return ext || ''; // Возвращаем пустую строку если нет расширения
-        } catch { return ''; }
-    };
-
-    // 1. Загружаем все файлы асинхронно
-    const filesPromises = docs.map(async (doc) => {
+    const filesPromises = docs.map(async (doc) => { //Загружаем все файлы асинхронно
         if (!doc.doc_link) return null;
+
         try {
-            let response;
-            let fileUrl = doc.doc_link; //исходная ссылка записанная в БД
-            let finalFilename = doc.doc_name; // Определяем finalFilename заранее
+            let blob;
+            const originalLink = doc.doc_link;
 
             // Проверяем, является ли ссылка локальной
-            if (fileUrl.startsWith('\\')) {
-                // Запрашиваем URL для локального файла
-                const pdfResponse = await fetch(`http://${serverUrl}/api/get-file`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: fileUrl })
-                });
+            if (originalLink.startsWith('\\')) { //если это локальная ссылка
+                const { url } = await DataManager.fetchFileUrl(originalLink); // Получаем временную ссылку на локальный файл с пробелами 'http://${serverUrl}/data/folder1/ЕИУС.468622.001_ППСЦ/ЭД/ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf'
+                const response = await fetch(url); // Загружаем файл по полученному URL (URL временный и не требует auth)
 
-                if (pdfResponse.ok) {
-                    const data = await pdfResponse.json();
-                    fileUrl = data.url; //путь с пробелами 'http://${serverUrl}/data/folder1/ЕИУС.468622.001_ППСЦ/ЭД/ЕИУС.468622.001 ПС  ППСЦ  изм.2.pdf'
-                    response = await fetch(fileUrl);  // Загружаем файл по полученному URL
-                    if (!response.ok) {
-                        console.error(`Ошибка загрузки ${fileUrl}: ${response.status}`);
-                        return null;
-                    }
-                } else {
-                    console.error(`Ошибка получения URL для ${fileUrl}`);
-                    return null;
-                }
-            } else { //иначе это внешняя ссылка
-                response = await fetch(`http://${serverUrl}/api/download-external`, { //запрашиваем файл через прокси-сервер
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: fileUrl })
-                });
-                if (!response.ok) {
-                    console.error(`Ошибка загрузки ${fileUrl}: ${response.status}`);
-                    return null;
-                }
+                if (!response.ok) throw new Error(`Ошибка загрузки ${url}: ${response.status}`); //если файл не загрузился показываем ошибку
+
+                blob = await response.blob(); //Получаем бинарные данные как Blob 
+            } else { //если это внешняя ссылка
+                blob = await DataManager.downloadExternalFile(originalLink); //Получаем бинарные данные как Blob. Для внешних ссылок используем прокси-метод
             }
 
-            const fileExtension = getFileExtension(fileUrl); // Получаем расширение из URL .pdf
+            const filename = `${doc.doc_name || 'document'}.${blob.type.split('/')[1] || 'bin'}`; //формируем имя файла
+            console.log('filename: ', filename);
 
-            if (fileExtension) {               // Удаляем существующее расширение в имени (если есть)
-                // const baseName = finalFilename.replace(/\.[^/.]+$/, '_'); //меняем на _
-                finalFilename = `${finalFilename}.${fileExtension}`; //формируем имя файла с расширением 'ПС.pdf'
-            }
+            zip.file(filename, blob, { binary: true }); //Добавляем в архив (БЕЗ вложенных папок)
+            console.log(`Добавлен файл: ${filename} (${blob.size} байт)`);
 
-            const blob = await response.blob();             // 4. Получаем бинарные данные как Blob (из внешнего ресурса или из локального - одинаково)
-            zip.file(finalFilename, blob, { binary: true });             // 5. Добавляем в архив (БЕЗ вложенных папок)
-            console.log(`Добавлен файл: ${finalFilename} (${blob.size} байт)`);
-
-        } catch (error) { console.error(`Ошибка обработки файла:`, error); }
+        } catch (error) {
+            console.error(`Ошибка обработки файла: ${doc.doc_name}:`, error);
+            // Не прерываем весь процесс, просто пропускаем ошибочный файл
+        }
     });
 
-    await Promise.all(filesPromises);     // 6. Ждем завершения всех загрузок
+    await Promise.all(filesPromises);     // Ждем завершения всех загрузок
 
-    if (Object.keys(zip.files).length === 0) {     // 7. Проверяем есть ли файлы в архиве
-        console.error('Нет файлов для архивации');
+    if (Object.keys(zip.files).length === 0) {     //Проверяем есть ли файлы в архиве
         alert('Нет файлов для архивации');
         return;
     }
 
-    const blob = await zip.generateAsync({     // 8. Генерируем архив
+    const blob = await zip.generateAsync({     // Генерируем архив
         type: 'blob',
         compression: 'DEFLATE', // Сжатие для уменьшения размера
         compressionOptions: { level: 9 } // Максимальное сжатие
     });
 
-    const url = URL.createObjectURL(blob);     // 9. Создаем ссылку для скачивания
+    const url = URL.createObjectURL(blob);     // Создаем ссылку для скачивания
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
@@ -522,7 +484,7 @@ async function archiveDocs(item) {
     document.body.appendChild(a);
     a.click();
 
-    a.remove();   // 10. Уборка
+    a.remove();   // Уборка
     URL.revokeObjectURL(url);
 
     console.log('Архив успешно создан');
@@ -536,90 +498,61 @@ async function openDirectoryModal(directoryUrl) { // directoryUrl === \\fs3\Те
     const modalContent = document.getElementById('directory-content');
     const backdrop = document.querySelector('.modal-backdrop');
 
-    // Функция для загрузки содержимого директории
-    const loadDirectoryContent = async (path) => {
-        console.log('path', path);
-
-        const response = await fetch(`http://${serverUrl}/api/get-dir`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path })
-        });
-
-        if (response.ok) {
-            return await response.json(); //возвращает названия файлов/директори в json [{name: '1.pdf', isDirectory: false}, {name: 'directory', isDirectory: true}, ...]
-        } else {
-            throw new Error('Ошибка загрузки содержимого директории');
-        }
-    };
-
     // Функция для рекурсивного отображения содержимого директории
     const displayDirectoryContent = async (path, parentElement) => {
         try {
-            const files = await loadDirectoryContent(path); //возвращает названия файлов/директори в json [{name: '1.pdf', isDirectory: false}, {name: 'directory', isDirectory: true}, ...]
+            const files = await DataManager.fetchDirectory(path); //возвращает названия файлов/директори в json [{name: '1.pdf', isDirectory: false}, {name: 'directory', isDirectory: true}, ...]
             files.forEach(file => {
-
                 if (file.name === 'Thumbs.db') return; //файлы которые ненадо показывать
 
-                const fileElement = document.createElement('div');
-                const fileElementName = document.createElement('p');
-                fileElementName.textContent = file.name
-                fileElement.append(fileElementName);
+                const fileElement = document.createElement('div'); //заготавливаем обертку для файла или директории
+                const fileElementName = document.createElement('p'); //заготавливаем параграф для название файла или директории
+                fileElementName.textContent = file.name;
+                fileElement.append(fileElementName); //вставляем параграф в обертку
 
-                if (file.isDirectory) {
+                if (file.isDirectory) { //если это директория
                     fileElement.classList.add('directory');
-                    fileElementName.addEventListener('click', async () => {
-                        const subDirectoryPath = `${path}\\${file.name}`;
+                    fileElementName.addEventListener('click', async () => { //добавляем обработчик клика
+                        const subDirectoryPath = `${path}\\${file.name}`; //путь к этой директории
                         if (fileElement.classList.contains('expanded')) {
                             // Удаляем содержимое, если директория уже раскрыта
                             const allDivs = fileElement.querySelectorAll('div'); //выбираем все дочерние div элементы
-                            allDivs.forEach(div => div.remove()); //удаляем их
+                            if (allDivs) { allDivs.forEach(div => div.remove()); } //удаляем их
                             fileElement.classList.remove('expanded');
                         } else {
                             await displayDirectoryContent(subDirectoryPath, fileElement);
                             fileElement.classList.toggle('expanded');
                         }
                     });
-                } else {
+                } else { //если это файл
                     fileElement.classList.add('file');
                     fileElement.setAttribute('data-link', path + '/' + file.name);
-                    fileElementName.addEventListener('click', () => {
-                        fetch(`http://${serverUrl}/api/get-file`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ path: fileElement.getAttribute('data-link') })
-                        }).then(response => {
-                            if (response.ok) {
-                                return response.json();
-                            }
-                            throw new Error('Network response was not ok.');
-                        }).then(data => {
-                            window.open(data.url, '_blank');
-                        }).catch(error => console.error('Error fetching the PDF:', error));
+                    fileElementName.addEventListener('click', async () => { //добавляем обработчик клика
+                        try {
+                            const { url } = await DataManager.fetchFileUrl(`${path}\\${file.name}`); //получаем временный URL для доступа к файлу
+                            window.open(url, '_blank'); //открываем файл в новом окне
+                        } catch (error) {
+                            console.error('Ошибка при открытии файла:', error);
+                            alert('Не удалось открыть файл: ' + error.message);
+                        }
                     });
                 }
-
                 parentElement.appendChild(fileElement);
             });
         } catch (error) {
             console.error(error);
             parentElement.textContent = 'Ошибка загрузки содержимого директории';
+            alert(error.message);
         }
     };
-
-    modalContent.innerHTML = ''; //очищаем модальное окно
-
-    await displayDirectoryContent(directoryUrl, modalContent);
 
     modal.style.display = 'block';
     backdrop.style.display = 'block';
 
-    document.querySelector('.close-button').onclick = () => {   // Закрытие модального окна
-        modal.style.display = 'none';
-        backdrop.style.display = 'none';
-    };
+    modalContent.innerHTML = ''; //очищаем модальное окно
+    await displayDirectoryContent(directoryUrl, modalContent); //рекурсовно вызываем эту же функцию для отображения содержимого директории
 
-    backdrop.onclick = () => {
+    document.querySelector('#directory-modal .close-button').onclick = () => {   // Закрытие модального окна по клику на крестик .close-button
         modal.style.display = 'none';
         backdrop.style.display = 'none';
     };

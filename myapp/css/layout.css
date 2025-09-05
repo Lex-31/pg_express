@@ -99,6 +99,8 @@
         margin: 1cm 1cm 1cm 2cm;
     }
 
+    #react-login-form-container,
+    #user-info-container,
     #new-btn,
     #toggle-doc-btn,
     #auth-btn {

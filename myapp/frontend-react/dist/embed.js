@@ -12086,7 +12086,6 @@ const LoginForm = ({ onLoginSuccess }) => {
             // Убедитесь, что поля в вашем токене называются именно так
             email: decodedPayload.email
           };
-          console.log("Данные для передачи:", decodedData);
         } catch (e) {
           console.error("Ошибка декодирования токена:", e);
         }
@@ -12133,7 +12132,6 @@ const LoginForm = ({ onLoginSuccess }) => {
     " "
   ] });
 };
-console.log("загрузка файла embed.js");
 function renderLoginForm(elementId, onLoginSuccessCallback) {
   const element = document.getElementById(elementId);
   if (element) {

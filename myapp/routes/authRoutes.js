@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 import { pool, table_name } from '../config/dbConfig.js';
 import jwt from 'jsonwebtoken';
+import { authenticateToken } from './authMiddleware.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key'; // Replace with a strong secret key
@@ -12,7 +13,7 @@ const validateRegistration = [
     body('username')
         .trim()
         .notEmpty().withMessage('Имя пользователя не может быть пустым')
-        .isLength({ min: 3 }).withMessage('Длинна должна быть более 3 символов.'),
+        .isLength({ min: 3 }).withMessage('Длинна должна быть не менее 3 символов'),
     body('email')
         .trim()
         .notEmpty().withMessage('Email не может быть пустым')
@@ -20,7 +21,7 @@ const validateRegistration = [
     body('password')
         .trim()
         .notEmpty().withMessage('Пароль не может быть пустым')
-        .isLength({ min: 6 }).withMessage('Пароль должен быть более 6 символов.')
+        .isLength({ min: 6 }).withMessage('Пароль должен быть не менее 6 символов')
 ];
 
 // POST /api/register - User registration
@@ -127,8 +128,8 @@ router.post('/api/login', validateLogin, async (req, res) => {
         const token = jwt.sign(
             {
                 userId: user.id,
-                username: user.username, // <--- ДОБАВЛЕНО
-                email: user.email,       // <--- ДОБАВЛЕНО
+                username: user.username,
+                email: user.email,
                 permissions: user.permissions,
             },
             JWT_SECRET,
@@ -147,36 +148,10 @@ router.post('/api/login', validateLogin, async (req, res) => {
     }
 });
 
-const authenticateToken = (req, res, next) => {
-    console.log('Authenticating token...'); // 1. At the start of the function.
-
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Get the token from the 'Bearer TOKEN' format
-
-    if (token == null) {
-        return res.status(401).json({ message: 'Требуется аутентификация (отсутствует токен).' }); // Unauthorized
-    }
-
-    console.log('Token extracted:', token != null); // 2. After attempting to extract the token.
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-
-        console.log('JWT verification result: err =', err, ', user =', user); // 3. Inside the jwt.verify callback.
-
-        if (err) {
-            console.error('Ошибка верификации JWT:', err.message);
-            return res.status(403).json({ message: 'Неверный или просроченный токен.' }); // Forbidden
-        }
-        req.user = user; // Attach the decoded user payload to the request object.
-        next(); // Pass the request to the next handler
-    });
-};
-
 // GET /api/users - Fetch all users
 
 // GET /api/user/me - Get current authenticated user's info
 router.get('/api/user/me', authenticateToken, async (req, res) => {
-    console.log('Обращение к authRoutes.js /api/user/me');
     // authenticateToken middleware already ensures req.user exists and is populated from the token payload
     const userId = req.user.userId; // Get user ID from the token payload
 
@@ -210,11 +185,6 @@ router.get('/api/user/me', authenticateToken, async (req, res) => {
 router.get('/api/users', authenticateToken, async (req, res) => {
     // TODO: Implement proper authorization check here (e.g., check if req.user has 'view_users' permission)
     // With the current requirements, simply being authenticated is enough to view the user list.
-    console.log('Обращение к authRoutes.js /api/users');
-
-    // if (!req.user || !req.user.permissions.includes('view_users')) {
-    //     return res.status(403).json({ message: 'Доступ запрещен.' });
-    // }
 
     const client = await pool.connect();
 
@@ -297,7 +267,7 @@ const ALL_PERMISSIONS = [
     'edit_entries_full', // Полное редактирование записи
     'edit_entries_initiator', // Редактирование части заполняемой инициатором
     'edit_entries_responder', // Редактирование части заполняемой отвечающим (включая утверждение)
-    'delete_entries'
+    'delete_entries' // Удаление записи
 ];
 
 router.get('/api/permissions', authenticateToken, (req, res) => {

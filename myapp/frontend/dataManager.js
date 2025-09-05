@@ -4,6 +4,16 @@ import { serverUrl } from './config.js';
  * можем использовать этот файл 'dataManager.js как централизованное место для всех API запросов, возможно, добавив туда функции из main*.js
  */
 
+/** Создает и возвращает заголовки для авторизованных API-запросов.
+ * @returns {Headers} Объект Headers с Content-Type и заголовком Authorization */
+function getAuthHeaders() {
+    const headers = new Headers();
+    const jwtToken = localStorage.getItem('jwtToken');
+    headers.append('Content-Type', 'application/json');
+    if (jwtToken) headers.append('Authorization', `Bearer ${jwtToken}`);
+    return headers;
+}
+
 /** Класс для запросов к серверу
  * @method fetchData - универсальный метод для GET запросов к серверу
  * @method fetchCategories - GET запрос на получение категорий
@@ -21,139 +31,183 @@ import { serverUrl } from './config.js';
  * @method deleteZp - DELETE запрос на удаление ЖП
  * @method deleteNoteZp - DELETE запрос на удаление записи в ЖП */
 export class DataManager {
-    static async fetchData(url) {  // универсальный метод для GET запросов к серверу
-        const response = await fetch(url);
+    /** Универсальный метод для выполнения запросов к API. Автоматически добавляет заголовки авторизации
+     * @param {string} url - URL-адрес для запроса
+     * @param {object} options - необязательные Опции для fetch (method, body, и т.д.)
+     * @returns {Promise<any>} JSON-ответ от сервера */
+    static async request(url, options = {}) {
+        const config = {
+            ...options, //добавляем данные и методы если они есть
+            headers: getAuthHeaders(), // Добавляем заголовки авторизации
+        };
+
+        // Для blob-ответов (архив)
+        const isBlob = options.isBlob || false;
+        // if (isBlob) delete config.isBlob;
+        if ('isBlob' in config) delete config.isBlob; //???
+
+        const response = await fetch(url, config);  // выполняем запрос на url с указанными опциями
+        if (response.status === 204) return;  // Для запросов (например, DELETE), которые могут не возвращать тело ответа
+
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            // Использовать сообщение об ошибке от сервера, если оно доступно
+            const responseData = await response.json();
+            const error = new Error(responseData.message || `HTTP ошибка! Статус: ${response.status}`);
+            error.data = responseData;
+            throw error;
         }
+
+        if (isBlob) { // если ожидается blob
+            return response.blob();
+        }
+
         return response.json();
     }
 
-    static async fetchCategories() {  // GET запрос на получение категорий
-        return this.fetchData(`http://${serverUrl}/api/categories`);
+    // GET запросы
+    /** Получение категорий */
+    static async fetchCategories() {
+        return this.request(`http://${serverUrl}/api/categories`);
     }
 
-    static async fetchProducts() {  // GET запрос на получение изделий
-        return this.fetchData(`http://${serverUrl}/api/main`);
+    /** Получение изделий */
+    static async fetchProducts() {
+        return this.request(`http://${serverUrl}/api/main`);
     }
 
-    static async fetchProductById(id) {  // GET запрос на получение изделия по id
-        return this.fetchData(`http://${serverUrl}/api/main/${id}`);
+    /** Получение изделия по id
+     * @param {number} id - id изделия */
+    static async fetchProductById(id) {
+        return this.request(`http://${serverUrl}/api/main/${id}`);
     }
 
-    static async fetchItemsZp() {  // GET запрос на получение всех журналов предложений
-        return this.fetchData(`http://${serverUrl}/api/zp`);
+    /** Получение всех ЖП */
+    static async fetchItemsZp() {
+        return this.request(`http://${serverUrl}/api/zp`);
     }
 
-    static async fetchNotesZp(id) {  // GET запрос на получение всех записей из одного журнала предложений по id журнала
-        return this.fetchData(`http://${serverUrl}/api/zp/${id}`);
+    /** Получение всех записей из одного ЖП
+     * @param {number} id - id ЖП */
+    static async fetchNotesZp(id) {
+        return this.request(`http://${serverUrl}/api/zp/${id}`);
     }
 
-    static async fetchCountNotesInZp() {  // GET запрос на получение количества записей в ЖП
-        return this.fetchData(`http://${serverUrl}/api/zpCount`);
+    /** Получение количества записей в ЖП */
+    static async fetchCountNotesInZp() {
+        return this.request(`http://${serverUrl}/api/zpCount`);
     }
 
-    static async updateProduct(id, data, username) {  // PUT запрос на обновление изделия
-        const response = await fetch(`http://${serverUrl}/api/main/${id}`, {
+    // PUT запросы
+    /** Обновление изделия
+     * @param {number} id - id изделия
+     * @param {object} data - данные из формы */
+    static async updateProduct(id, data) {
+        return this.request(`http://${serverUrl}/api/main/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Username': username // Передача имени пользователя в заголовке
-            },
             body: JSON.stringify(data)
         });
-        return response.json();
     }
 
-
-    static async updateZp(id, data, username) {  // PUT запрос на обновление ЖП
-        const response = await fetch(`http://${serverUrl}/api/zp/${id}`, {
+    /** Обновление ЖП
+     * @param {number} id - id ЖП
+     * @param {object} data - данные из формы */
+    static async updateZp(id, data) {
+        return this.request(`http://${serverUrl}/api/zp/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Username': username // Передача имени пользователя в заголовке
-            },
             body: JSON.stringify(data)
         });
-        return response.json();
     }
 
-    static async updateNoteZp(noteId, data, username) {  // PUT запрос на обновление записи в ЖП
-        const response = await fetch(`http://${serverUrl}/api/noteZp/${noteId}`, {
+    /** Обновление записи в ЖП
+     * @param {number} noteId - id записи в ЖП
+     * @param {object} data - данные из формы */
+    static async updateNoteZp(noteId, data) {
+        return this.request(`http://${serverUrl}/api/noteZp/${noteId}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Username': username // Передача имени пользователя в заголовке
-            },
             body: JSON.stringify(data)
         });
-        return response.json();
     }
 
-    static async createProduct(data, username) {  // POST запрос на создание изделия
-        const response = await fetch(`http://${serverUrl}/api/main`, {
+    // POST запросы
+    /** Cоздание изделия
+     * @param {object} data - данные из формы */
+    static async createProduct(data) {
+        return this.request(`http://${serverUrl}/api/main`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Username': username // Передача имени пользователя в заголовке
-            },
             body: JSON.stringify(data)
         });
-        return response.json();
     }
 
-    static async createZp(data, username) {  // POST запрос на создание нового ЖП
-        const response = await fetch(`http://${serverUrl}/api/zp`, {
+    /** Cоздание нового ЖП
+     * @param {object} data - данные из формы */
+    static async createZp(data) {
+        return this.request(`http://${serverUrl}/api/zp`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Username': username // Передача имени пользователя в заголовке
-            },
             body: JSON.stringify(data)
         });
-        return response.json();
     }
 
-    static async createNoteZp(id, data, username) {  // POST запрос на создание записи в ЖП
-        // id - ЖП; data - данные из формы; username - имя пользователя авторизированного
-        const response = await fetch(`http://${serverUrl}/api/zp/${id}`, {
+    /** Создание записи в ЖП
+     * @param {number} id - id ЖП
+     * @param {object} data - данные из формы */
+    static async createNoteZp(id, data) {
+        return this.request(`http://${serverUrl}/api/zp/${id}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Username': username // Передача имени пользователя в заголовке
-            },
             body: JSON.stringify(data)
         });
-        return response.json();
     }
 
-    static async deleteProduct(id, username) {  // DELETE запрос на удаление изделия
-        const response = await fetch(`http://${serverUrl}/api/main/${id}`, {
+    // DELETE запросы
+    /** Удаление изделия
+     * @param {number} id - id изделия */
+    static async deleteProduct(id) {
+        return this.request(`http://${serverUrl}/api/main/${id}`, {
             method: 'DELETE',
-            headers: {
-                'X-Username': username // Передача имени пользователя в заголовке
-            },
         });
-        return response.json();
     }
 
-    static async deleteZp(id, username) {  // DELETE запрос на удаление ЖП
-        const response = await fetch(`http://${serverUrl}/api/zp/${id}`, {
+    /** Удаление ЖП
+     * @param {number} id - id ЖП */
+    static async deleteZp(id) {
+        return this.request(`http://${serverUrl}/api/zp/${id}`, {
             method: 'DELETE',
-            headers: {
-                'X-Username': username // Передача имени пользователя в заголовке
-            },
         });
-        return response.json();
     }
 
-    static async deleteNoteZp(noteId, username) {  // DELETE запрос на удаление записи в ЖП
-        const response = await fetch(`http://${serverUrl}/api/noteZp/${noteId}`, {
+    /** Удаление записи в ЖП
+     * @param {number} noteId - id записи в ЖП */
+    static async deleteNoteZp(noteId) {
+        return this.request(`http://${serverUrl}/api/noteZp/${noteId}`, {
             method: 'DELETE',
-            headers: {
-                'X-Username': username // Передача имени пользователя в заголовке
-            },
         });
-        return response.json();
+    }
+
+
+    // --- Files and Archiving ---
+    /** Получение содержимого директории на сервере
+     * @param {string} path - Путь к директории */
+    static async fetchDirectory(path = '') {
+        return this.request(`http://${serverUrl}/api/get-dir`, {
+            method: 'POST',
+            body: JSON.stringify({ path })
+        });
+    }
+
+    /** Получение временной URL для доступа к файлу на сервере */
+    static async fetchFileUrl(path) {
+        return this.request(`http://${serverUrl}/api/get-file`, {
+            method: 'POST',
+            body: JSON.stringify({ path })
+        });
+    }
+
+    /** Прокси-загрузка внешнего файла для архивации
+     * @param {number} url - URL файла */
+    static async downloadExternalFile(url) {
+        return this.request(`http://${serverUrl}/api/download-external`, {
+            method: 'POST',
+            body: JSON.stringify({ url }),
+            isBlob: true // Указываем, что ожидаем файл (blob)
+        });
     }
 }

@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'; // Use react-dom/client for React
 import LoginForm from './components/LoginForm.jsx';
 
 //log
-console.log('загрузка файла embed.js');
+// console.log('загрузка файла embed.js');
 
 /**Function to render the LoginForm into a specific DOM element
  * @param elementId ID DOM-элемента, куда будет рендериться форма логина
@@ -25,4 +25,3 @@ function renderLoginForm(elementId, onLoginSuccessCallback) {
 }
 
 window.renderLoginForm = renderLoginForm;
-// export { renderLoginForm }; // Export renderLoginForm;
