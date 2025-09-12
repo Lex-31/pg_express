@@ -185,6 +185,9 @@ router.get('/api/user/me', authenticateToken, async (req, res) => {
 router.get('/api/users', authenticateToken, async (req, res) => {
     // TODO: Implement proper authorization check here (e.g., check if req.user has 'view_users' permission)
     // With the current requirements, simply being authenticated is enough to view the user list.
+    if (!req.user || !req.user.permissions.includes('view_users')) {
+        return res.status(403).json({ message: 'Доступ запрещен.' });
+    }
 
     const client = await pool.connect();
 
@@ -203,8 +206,7 @@ router.get('/api/users', authenticateToken, async (req, res) => {
 
 // Validation middleware for updating permissions
 const validatePermissionsUpdate = [
-    body('permissions')
-        .isArray().withMessage('Поле permissions должно быть массивом'),
+    body('permissions').isArray().withMessage('Поле permissions должно быть массивом'),
 ];
 
 // Для обновления разрешений конкретного пользователя по его ID
@@ -230,16 +232,20 @@ router.put('/api/users/:id', authenticateToken, validatePermissionsUpdate, async
 
     try {
         // Check if the user exists
-        const userExists = await client.query(`SELECT id FROM ${table_name}_users WHERE id = $1`, [userId]);
-        if (userExists.rows.length === 0) {
-            return res.status(404).json({ message: 'Пользователь не найден.' });
-        }
+        // const userExists = await client.query(`SELECT id FROM ${table_name}_users WHERE id = $1`, [userId]);
+        // if (userExists.rows.length === 0) {
+        //     return res.status(404).json({ message: 'Пользователь не найден.' });
+        // }
 
         // Update permissions
         const result = await client.query(
             `UPDATE ${table_name}_users SET permissions = $1 WHERE id = $2 RETURNING id, username, email, permissions`,
             [permissions, userId]
         );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Пользователь не найден.' });
+        }
 
         res.status(200).json({
             message: 'Права пользователя успешно обновлены.',
@@ -256,10 +262,50 @@ router.put('/api/users/:id', authenticateToken, validatePermissionsUpdate, async
     }
 });
 
+// DELETE /api/users/:id - Delete a user
+router.delete('/api/users/:id', authenticateToken, async (req, res) => {
+    // 1. Проверка прав: есть ли у текущего пользователя право 'delete_users'
+    if (!req.user || !req.user.permissions.includes('delete_users')) {
+        return res.status(403).json({ message: 'Доступ запрещен.' });
+    }
+
+    const userId = parseInt(req.params.id, 10);
+
+    if (isNaN(userId)) {
+        return res.status(400).json({ message: 'Неверный формат ID пользователя.' });
+    }
+
+    // Нельзя удалить самого себя
+    if (userId === req.user.userId) {
+        return res.status(400).json({ message: 'Вы не можете удалить свою собственную учетную запись.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        const deleteResult = await client.query(`DELETE FROM ${table_name}_users WHERE id = $1`, [userId]);
+
+        // .rowCount содержит количество удаленных строк. Если 0 - пользователь не был найден
+        if (deleteResult.rowCount === 0) {
+            return res.status(404).json({ message: 'Пользователь не найден.' });
+        }
+
+        res.status(200).json({ message: 'Пользователь успешно удален.' });
+
+    } catch (error) {
+        console.error('Ошибка при удалении пользователя:', error);
+        res.status(500).json({ message: 'Произошла ошибка при удалении пользователя', error: error.message });
+    } finally {
+        if (client) {
+            client.release();
+        }
+    }
+});
+
 // GET /api/permissions - Get a list of all possible permissions
 const ALL_PERMISSIONS = [
-    'view_users',
-    'edit_permissions',
+    'view_users', // Просмотр списка пользователей на странице /admin
+    'delete_users', // Удаление пользователей из списка на странице /admin
+    'edit_permissions', // Редактирование прав пользователей на странице /admin
     'create_zp', // Создание ЖП
     'edit_zp', // Редактировавние ЖП
     'delete_zp', // Удаление ЖП
@@ -267,12 +313,12 @@ const ALL_PERMISSIONS = [
     'edit_entries_full', // Полное редактирование записи
     'edit_entries_initiator', // Редактирование части заполняемой инициатором
     'edit_entries_responder', // Редактирование части заполняемой отвечающим (включая утверждение)
-    'delete_entries' // Удаление записи
+    'delete_entries' // Удаление записи продукции или ЖП
 ];
 
 router.get('/api/permissions', authenticateToken, (req, res) => {
     // Basic authorization check: only allow users with 'edit_permissions' to get the list
-    if (!req.user || !req.user.permissions.includes('edit_permissions')) {
+    if (!req.user || !req.user.permissions.includes('view_users')) {
         return res.status(403).json({ message: 'Доступ запрещен.' });
     }
 

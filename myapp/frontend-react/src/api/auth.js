@@ -205,3 +205,33 @@ export async function updateUserPermissions(userId, permissions) {
         throw error; // Re-throw the error to be handled by the caller
     }
 }
+
+/**
+ * Deletes a user by their ID.
+ * @param {string|number} userId The ID of the user to delete.
+ * @returns {Promise<Object>} A promise that resolves with the deletion success message.
+ * @throws {Error} If the request fails.
+ */
+export async function deleteUser(userId) {
+    const token = localStorage.getItem('jwtToken');
+    const headers = {
+        'Authorization': `Bearer ${token}`
+    };
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+            method: 'DELETE',
+            headers: headers,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Error deleting user: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error in deleteUser:', error);
+        throw error;
+    }
+}

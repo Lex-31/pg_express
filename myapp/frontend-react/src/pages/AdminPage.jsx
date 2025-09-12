@@ -9,13 +9,11 @@ const AdminPage = () => {
     const [users, setUsers] = useState([]); // Состояние для хранения списка пользователей
     const [error, setError] = useState(null); // Состояние для сохранения любой ошибки выборки
     const [isLoggedIn, setIsLoggedIn] = useState(false); // State to track login status
-
     const [currentUser, setCurrentUser] = useState(null); // State to store current logged-in user
 
     useEffect(() => {
         const fetchData = async () => {
             setError(null); // Clear previous errors
-
             // Fetch current user data if token exists
             const token = localStorage.getItem('jwtToken');
             if (token) {
@@ -24,13 +22,14 @@ const AdminPage = () => {
                     setCurrentUser(userData); // Set current user state
                     setIsLoggedIn(true); // Set logged in status
 
-                    // Fetch users list only if successfully authenticated
-                    const usersList = await getUsers();
-                    setUsers(usersList);
-
-                    // Fetch all permissions list
-                    const permissionsList = await getAllPermissions();
-                    setAllPermissions(permissionsList);
+                    if (userData.permissions.includes('view_users')) {
+                        // Fetch users list only if successfully authenticated
+                        const usersList = await getUsers();
+                        setUsers(usersList);
+                        // Fetch all permissions list
+                        const permissionsList = await getAllPermissions();
+                        setAllPermissions(permissionsList);
+                    }
                 } catch (err) {
                     console.error('Error fetching current user:', err);
                     // If token is invalid or expired, clear it and state
@@ -55,19 +54,11 @@ const AdminPage = () => {
 
     // Function to handle user updates from UserRow
     const handleUserUpdate = (updatedUser) => {
-        //логирование
-        console.log('AdminPage: Handling user update:', updatedUser);
+        setUsers(prevUsers => prevUsers.map(user => user.id === updatedUser.id ? updatedUser : user));
+    };
 
-        setUsers(prevUsers => {
-            const newUsers = prevUsers.map(user =>
-                user.id === updatedUser.id ? updatedUser : user
-            );
-            console.log('AdminPage: New users state in setUsers callback:', newUsers); // Лог нового состояния
-            return newUsers;
-        });
-
-        // Лог здесь может показать старое состояние users
-        console.log('AdminPage: Users state after update:', users);
+    const handleUserDelete = (deletedUserId) => {
+        setUsers(prevUsers => prevUsers.filter(user => user.id !== deletedUserId));
     };
 
     // Function to handle adding a newly registered user to the list
@@ -76,57 +67,53 @@ const AdminPage = () => {
     };
 
     // Function to handle successful login
-    const handleLoginSuccess = async () => {
-        setIsLoggedIn(true); // Set logged in status
-        // Re-fetch user data and user list after successful login
-        setError(null); // Clear previous errors
-        try {
-            const userData = await getCurrentUser();
-            setCurrentUser(userData);
-
-            const usersList = await getUsers();
-            setUsers(usersList);
-
-            // Fetch all permissions list
-            const permissionsList = await getAllPermissions();
-            setAllPermissions(permissionsList);
-        } catch (err) {
-            console.error('Error fetching data after login:', err);
-            setError('Не удалось обновить данные после входа.');
-        }
+    const handleLoginSuccess = () => {
+        setIsLoggedIn(true);
     };
 
     return (
         <div>
             {isLoggedIn ? (
-                <> {/* Оборачиваем содержимое в фрагмент */}
-                    {currentUser && ( // Условно отображаем информацию о пользователе
+                currentUser && (
+                    <div>
                         <div>
                             <p>Вошел как: {currentUser.username} ({currentUser.email})</p>
                             <button onClick={handleLogout}>Выход</button>
                         </div>
-                    )}
 
-                    {error && <p style={{ color: 'red' }}>{error}</p>} {/* Отображение ошибки */}
-                    <ul>
-                        {users.map(user => (
-                            <UserRow key={user.id} user={user} onUserUpdate={handleUserUpdate} allPermissions={allPermissions} />
-                        ))}
-                    </ul>
-                    {/* Здесь можно добавить контент только для авторизованных, если нужно */}
-                    <h2>Регистрация</h2>
-                    <RegistrationForm onUserAdded={handleUserAdded} />
-
-                </>
+                        {currentUser.permissions.includes('view_users') ? (
+                            <div>
+                                {error && <p style={{ color: 'red' }}>{error}</p>}
+                                <ul>
+                                    {users.map(user => (
+                                        <UserRow
+                                            key={user.id}
+                                            user={user}
+                                            currentUserPermissions={currentUser.permissions}
+                                            onUserUpdate={handleUserUpdate}
+                                            onUserDelete={handleUserDelete}
+                                            allPermissions={allPermissions}
+                                        />
+                                    ))}
+                                </ul>
+                                {currentUser.permissions.includes('edit_permissions') && (
+                                    /* Форма регистрации только для edit_permissions */
+                                    <div>
+                                        <h2>Регистрация</h2>
+                                        <RegistrationForm onUserAdded={handleUserAdded} />
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <p>У вас нет прав для просмотра этой страницы.</p>
+                        )}
+                    </div>
+                )
             ) : (
-                <> {/* Отображаем формы входа и регистрации */}
+                <div>
                     <h2>Вход</h2>
                     <LoginForm onLoginSuccess={handleLoginSuccess} />
-
-                    {/* Форму регистрации можно отобразить здесь для неавторизованных */}
-                    <h2>Регистрация</h2>
-                    <RegistrationForm onUserAdded={handleUserAdded} />
-                </>
+                </div>
             )}
         </div>
     );
