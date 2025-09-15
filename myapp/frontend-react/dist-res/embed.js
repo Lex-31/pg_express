@@ -1,0 +1,1 @@
+import{f as t,j as n,e as s,L as i}from"./chunks/LoginForm-D6LUtbsw.js";function c(o,r){const e=document.getElementById(o);e?t.createRoot(e).render(n.jsxs(s.StrictMode,{children:[n.jsx(i,{onLoginSuccess:r})," "]})):console.error(`Element with ID '${o}' not found for rendering LoginForm.`)}window.renderLoginForm=c;

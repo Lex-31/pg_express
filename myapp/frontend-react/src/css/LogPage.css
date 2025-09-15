@@ -1,0 +1,47 @@
+.log-page-container {
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+.log-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.log-table th,
+.log-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+    vertical-align: top;
+    /* Выравнивание по верху для ячеек */
+}
+
+.log-table th {
+    background-color: #f8f8f8;
+    font-weight: bold;
+}
+
+.log-table tbody tr:nth-child(even) {
+    background-color: #fdfdfd;
+}
+
+.log-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Стили для ячейки с деталями */
+.details-cell pre {
+    white-space: pre-wrap;
+    /* Позволяет переносить длинные строки */
+    word-break: break-all;
+    /* Ломает слова, чтобы они не выходили за пределы ячейки */
+    margin: 0;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    background-color: #e9eef2;
+    padding: 8px;
+    border-radius: 4px;
+}

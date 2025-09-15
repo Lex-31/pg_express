@@ -1,31 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import AdminPage from './pages/AdminPage';
-import LoginForm from './components/LoginForm'; // Assuming LoginForm is in components
-import RegistrationForm from './components/RegistrationForm'; // Assuming RegistrationForm is in components
+import App from './App'; // ИМПОРТИРУЕМ НАШ ГЛАВНЫЙ КОМПОНЕНТ APP
+import './index.css';
 
-import './index.css'; // Keep or remove based on your project needs
+// Находим корневой элемент в index.html
+const root = ReactDOM.createRoot(document.getElementById('root'));
 
-// A simple component to hold the login and registration forms
-const LoginPage = () => (
-  <>
-    <h2>Вход</h2>
-    <LoginForm />
-    <h2>Регистрация</h2>
-    <RegistrationForm />
-  </>
-);
-
-ReactDOM.createRoot(document.getElementById('root')).render(
+// Рендерим компонент App. Вся логика, включая роутер, теперь находится внутри App.jsx
+root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        {/* Optional: Add a route for the root path that redirects or shows login */}
-        {/* <Route path="/" element={<LoginPage />} /> */}
-      </Routes>
-    </BrowserRouter>
+    <App />
   </React.StrictMode>
 );

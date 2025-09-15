@@ -76,10 +76,6 @@ const AdminPage = () => {
             {isLoggedIn ? (
                 currentUser && (
                     <div>
-                        <div>
-                            <p>Вошел как: {currentUser.username} ({currentUser.email})</p>
-                            <button onClick={handleLogout}>Выход</button>
-                        </div>
 
                         {currentUser.permissions.includes('view_users') ? (
                             <div>

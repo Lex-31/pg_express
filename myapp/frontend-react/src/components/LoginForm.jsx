@@ -14,9 +14,9 @@ const LoginForm = ({ onLoginSuccess }) => {
 
         try {
             const result = await loginUser(loginData);
+
             if (result && result.token) {
                 localStorage.setItem('jwtToken', result.token); // 1. сохраняет токен
-                // setMessage('Вход выполнен успешно');
 
                 // 2. Декодируем токен, чтобы получить данные пользователя
                 let decodedData = {};
@@ -32,6 +32,8 @@ const LoginForm = ({ onLoginSuccess }) => {
                         username: decodedPayload.username, // Убедитесь, что поля в вашем токене называются именно так
                         email: decodedPayload.email
                     };
+                    localStorage.setItem('username', decodedData.username);
+                    localStorage.setItem('userEmail', decodedData.email);
                 } catch (e) {
                     console.error("Ошибка декодирования токена:", e);
                 }

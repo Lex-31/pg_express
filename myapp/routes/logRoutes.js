@@ -1,10 +1,62 @@
-import express from 'express';
-import fs from 'fs';
+import { Router } from 'express';
+import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url'; // ИМПОРТИРУЕМ fileURLToPath
+import { authenticateToken } from './authMiddleware.js'; // Подключаем middleware для проверки токена
 
-const router = express.Router();
+// ИСПРАВЛЕНИЕ: Правильное получение __dirname в ES-модулях
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const logFilePath = path.join(process.cwd(), 'log_cud');
+const router = Router();
+
+// Директория, где хранятся логи
+const logsDir = path.join(__dirname, '..', 'logs');
+
+// GET /api/logs - новый маршрут для получения логов
+// Добавляем authenticateToken, чтобы только авторизованные пользователи могли смотреть логи
+router.get('/api/logs', authenticateToken, async (req, res) => {
+
+    // Опциональная проверка прав: можно добавить право 'view_logs'
+    if (!req.user || !req.user.permissions.includes('view_logs')) {
+        return res.status(403).json({ message: 'Доступ запрещен.' });
+    }
+
+    try {
+        // Определяем имя файла лога для ТЕКУЩЕГО месяца
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const filename = `${year}-${month}.log`;
+        const logFilePath = path.join(logsDir, filename);
+
+        // Проверяем, существует ли файл
+        try {
+            await fs.access(logFilePath);
+        } catch {
+            // Если файл за текущий месяц еще не создан, возвращаем пустой массив
+            return res.status(200).json([]);
+        }
+
+        // Читаем содержимое файла
+        const data = await fs.readFile(logFilePath, 'utf8');
+
+        // Разделяем файл на строки, отбрасываем пустые строки, если они есть
+        const logLines = data.split('\n').filter(line => line.trim() !== '');
+
+        // Парсим каждую JSON-строку в объект
+        const logs = logLines.map(line => JSON.parse(line));
+
+        // Отправляем массив объектов на фронтенд
+        res.status(200).json(logs);
+
+    } catch (error) {
+        console.error('Ошибка при чтении лог-файла:', error);
+        res.status(500).json({ message: 'Ошибка на сервере при чтении логов.' });
+    }
+});
+
+/*const logFilePath = path.join(process.cwd(), 'log_cud');
 
 router.get('/api/log', (req, res) => {
     fs.readFile(logFilePath, 'utf8', (err, data) => {
@@ -62,6 +114,6 @@ router.get('/api/log', (req, res) => {
 
         res.send(html);
     });
-});
+});*/
 
 export default router;

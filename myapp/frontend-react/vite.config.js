@@ -4,7 +4,7 @@ import path from 'path'; // Import the path module
 
 export default defineConfig({
   plugins: [react()],
-  base: '/admin', //базовый путь приложения
+  base: '/admin/', //базовый путь приложения
 
   build: {
     // Build embed.js as a separate entry point
